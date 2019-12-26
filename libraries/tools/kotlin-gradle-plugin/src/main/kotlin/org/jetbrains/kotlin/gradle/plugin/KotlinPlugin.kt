@@ -64,7 +64,7 @@ internal abstract class KotlinSourceSetProcessor<T : AbstractKotlinCompile<*>>(
 
     protected val sourceSetName: String = kotlinCompilation.compilationName
 
-    protected val kotlinTask: TaskProvider<out T> = registerKotlinCompileTask()
+    protected val kotlinTask: TaskProvider<out T> = registerKotlinCompileTask(kotlinCompilation.compileKotlinTaskName)
 
     protected val javaSourceSet: SourceSet?
         get() =
@@ -86,8 +86,7 @@ internal abstract class KotlinSourceSetProcessor<T : AbstractKotlinCompile<*>>(
             return File(project.buildDir, "classes/kotlin/$targetSubDirectory${kotlinCompilation.compilationName}")
         }
 
-    private fun registerKotlinCompileTask(): TaskProvider<out T> {
-        val name = kotlinCompilation.compileKotlinTaskName
+    protected fun registerKotlinCompileTask(name: String): TaskProvider<out T> {
         logger.kotlinDebug("Creating kotlin compile task $name")
 
         KotlinCompileTaskData.register(name, kotlinCompilation).apply {
@@ -339,18 +338,18 @@ internal class KotlinJsIrSourceSetProcessor(
         listOf(
             compilation.productionCompileTaskName,
             compilation.developmentCompileTaskName
-        ).forEach { taskName ->
-            doRegisterTask(
-                project,
+        ).map { taskName ->
+            registerKotlinCompileTask(
                 taskName
-            ) {
-                it.description = taskDescription
-                it.mapClasspath { kotlinCompilation.compileDependencyFiles }
+            )
+        }.forEach { task ->
+            task.configure {
+                it.dependsOn(kotlinTask)
             }
         }
 
         // outputFile can be set later during the configuration phase, get it only after the phase:
-        project.runOnceAfterEvaluated("Kotlin2JsSourceSetProcessor.doTargetSpecificProcessing", kotlinTask) {
+        project.runOnceAfterEvaluated("KotlinJsIrSourceSetProcessor.doTargetSpecificProcessing", kotlinTask) {
             val kotlinTaskInstance = kotlinTask.get()
             kotlinTaskInstance.kotlinOptions.outputFile = kotlinTaskInstance.outputFile.absolutePath
             val outputDir = kotlinTaskInstance.outputFile.parentFile

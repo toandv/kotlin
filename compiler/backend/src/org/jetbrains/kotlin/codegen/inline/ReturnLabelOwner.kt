@@ -13,17 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.jetbrains.kotlin.codegen.inline
 
-package org.jetbrains.kotlin.codegen.inline;
+interface ReturnLabelOwner {
+    fun isReturnFromMe(labelName: String): Boolean
 
-import org.jetbrains.annotations.NotNull;
+    companion object {
+        val SKIP_ALL = object : ReturnLabelOwner {
+            override fun isReturnFromMe(labelName: String): Boolean = false
+        }
 
-public interface ReturnLabelOwner {
-    boolean isReturnFromMe(@NotNull String labelName);
-
-    ReturnLabelOwner SKIP_ALL = name -> false;
-
-    ReturnLabelOwner NOT_APPLICABLE = name -> {
-        throw new RuntimeException("This operation not applicable for current context");
-    };
+        val NOT_APPLICABLE = object : ReturnLabelOwner {
+            override fun isReturnFromMe(labelName: String): Boolean =
+                throw RuntimeException("This operation not applicable for current context")
+        }
+    }
 }

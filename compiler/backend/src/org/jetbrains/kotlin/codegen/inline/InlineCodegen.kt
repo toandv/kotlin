@@ -252,8 +252,10 @@ abstract class InlineCodegen<out T : BaseExpressionCodegen>(
         result.reifiedTypeParametersUsages.mergeAll(reificationResult)
 
         val labels = sourceCompiler.getContextLabels()
-
-        val infos = MethodInliner.processReturns(adapter, ReturnLabelOwner { labels.contains(it) }, true, null)
+        val labelOwner = object : ReturnLabelOwner {
+            override fun isReturnFromMe(labelName: String): Boolean = labels.contains(labelName)
+        }
+        val infos = MethodInliner.processReturns(adapter, labelOwner, true, null)
         generateAndInsertFinallyBlocks(
             adapter, infos, (remapper.remap(parameters.argsSizeOnStack + 1).value as StackValue.Local).index
         )

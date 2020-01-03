@@ -254,6 +254,7 @@ abstract class InlineCodegen<out T : BaseExpressionCodegen>(
         val labels = sourceCompiler.getContextLabels()
         val labelOwner = object : ReturnLabelOwner {
             override fun isReturnFromMe(labelName: String): Boolean = labels.contains(labelName)
+            override fun getJumpTarget(labelName: String): Label? = sourceCompiler.getJumpTarget(labelName)
         }
         val infos = MethodInliner.processReturns(adapter, labelOwner, true, null)
         generateAndInsertFinallyBlocks(
@@ -327,7 +328,9 @@ abstract class InlineCodegen<out T : BaseExpressionCodegen>(
                     frameMap.enterTemp(Type.INT_TYPE)
                 }
 
-                sourceCompiler.generateFinallyBlocksIfNeeded(finallyCodegen, extension.returnType, extension.finallyIntervalEnd.label)
+                sourceCompiler.generateFinallyBlocksIfNeeded(
+                    finallyCodegen, extension.returnType, extension.finallyIntervalEnd.label, extension.jumpTarget
+                )
 
                 //Exception table for external try/catch/finally blocks will be generated in original codegen after exiting this method
                 insertNodeBefore(finallyNode, intoNode, curInstr)

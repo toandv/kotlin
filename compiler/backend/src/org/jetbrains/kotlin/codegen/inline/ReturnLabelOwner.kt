@@ -15,8 +15,12 @@
  */
 package org.jetbrains.kotlin.codegen.inline
 
+import org.jetbrains.org.objectweb.asm.Label
+
 interface ReturnLabelOwner {
     fun isReturnFromMe(labelName: String): Boolean
+
+    fun getJumpTarget(labelName: String): Label? = null
 
     companion object {
         val SKIP_ALL = object : ReturnLabelOwner {

@@ -2119,6 +2119,16 @@ public class BlackBoxInlineCodegenTestGenerated extends AbstractBlackBoxInlineCo
             runTest("compiler/testData/codegen/boxInline/nonLocalReturns/explicitLocalReturn.kt");
         }
 
+        @TestMetadata("fromArrayGenerator.kt")
+        public void testFromArrayGenerator() throws Exception {
+            runTest("compiler/testData/codegen/boxInline/nonLocalReturns/fromArrayGenerator.kt");
+        }
+
+        @TestMetadata("fromArrayGeneratorWithFinally.kt")
+        public void testFromArrayGeneratorWithFinally() throws Exception {
+            runTest("compiler/testData/codegen/boxInline/nonLocalReturns/fromArrayGeneratorWithFinally.kt");
+        }
+
         @TestMetadata("fromInterfaceDefaultGetter.kt")
         public void testFromInterfaceDefaultGetter() throws Exception {
             runTest("compiler/testData/codegen/boxInline/nonLocalReturns/fromInterfaceDefaultGetter.kt");

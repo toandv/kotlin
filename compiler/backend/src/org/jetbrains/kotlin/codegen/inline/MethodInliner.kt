@@ -16,6 +16,7 @@ import org.jetbrains.kotlin.codegen.optimization.common.*
 import org.jetbrains.kotlin.codegen.optimization.fixStack.peek
 import org.jetbrains.kotlin.codegen.optimization.fixStack.top
 import org.jetbrains.kotlin.codegen.optimization.transformer.MethodTransformer
+import org.jetbrains.kotlin.codegen.pseudoInsns.PseudoInsn
 import org.jetbrains.kotlin.config.LanguageFeature
 import org.jetbrains.kotlin.descriptors.FunctionDescriptor
 import org.jetbrains.kotlin.descriptors.ParameterDescriptor
@@ -1043,7 +1044,8 @@ class MethodInliner(
     class PointForExternalFinallyBlocks(
         @JvmField val beforeIns: AbstractInsnNode,
         @JvmField val returnType: Type,
-        @JvmField val finallyIntervalEnd: LabelNode
+        @JvmField val finallyIntervalEnd: LabelNode,
+        @JvmField val jumpTarget: Label?
     )
 
     companion object {
@@ -1192,45 +1194,37 @@ class MethodInliner(
             var insnNode: AbstractInsnNode? = instructions.first
             while (insnNode != null) {
                 if (isReturnOpcode(insnNode.opcode)) {
-                    var isLocalReturn = true
                     val labelName = getMarkedReturnLabelOrNull(insnNode)
+                    val returnType = getReturnType(insnNode.opcode)
 
-                    if (labelName != null) {
-                        isLocalReturn = returnLabelOwner.isReturnFromMe(labelName)
-                        //remove global return flag
-                        if (isLocalReturn) {
-                            instructions.remove(insnNode.previous)
-                        }
+                    val isLocalReturn = if (labelName != null) returnLabelOwner.isReturnFromMe(labelName) else true
+                    val jumpTarget = if (labelName != null) returnLabelOwner.getJumpTarget(labelName) ?: endLabel else endLabel
+
+                    if (labelName != null && isLocalReturn) {
+                        // remove non-local return flag
+                        instructions.remove(insnNode.previous)
                     }
 
-                    if (isLocalReturn && endLabel != null) {
-                        val nop = InsnNode(Opcodes.NOP)
-                        instructions.insert(insnNode, nop)
-
-                        val labelNode = endLabel.info as LabelNode
-                        val jumpInsnNode = JumpInsnNode(Opcodes.GOTO, labelNode)
-                        instructions.insert(nop, jumpInsnNode)
-
+                    if (isLocalReturn && jumpTarget != null) {
+                        val jumpInsnNode = JumpInsnNode(Opcodes.GOTO, jumpTarget.info as LabelNode)
+                        instructions.insertBefore(insnNode, InsnNode(Opcodes.NOP))
+                        if (jumpTarget != endLabel) {
+                            instructions.insertBefore(insnNode, PseudoInsn.FIX_STACK_BEFORE_JUMP.createInsnNode())
+                        }
+                        instructions.insertBefore(insnNode, jumpInsnNode)
                         instructions.remove(insnNode)
                         insnNode = jumpInsnNode
                     }
 
-                    //generate finally block before nonLocalReturn flag/return/goto
                     val label = LabelNode()
                     instructions.insert(insnNode, label)
-                    result.add(
-                        PointForExternalFinallyBlocks(
-                            getInstructionToInsertFinallyBefore(insnNode, isLocalReturn), getReturnType(insnNode.opcode), label
-                        )
-                    )
+                    // generate finally blocks before the non-local return flag or the stack fixup pseudo instruction
+                    val finallyInsertionPoint = if (isLocalReturn && jumpTarget == endLabel) insnNode else insnNode.previous
+                    result.add(PointForExternalFinallyBlocks(finallyInsertionPoint, returnType, label, jumpTarget))
                 }
                 insnNode = insnNode.next
             }
             return result
-        }
-
-        private fun getInstructionToInsertFinallyBefore(nonLocalReturnOrJump: AbstractInsnNode, isLocal: Boolean): AbstractInsnNode {
-            return if (isLocal) nonLocalReturnOrJump else nonLocalReturnOrJump.previous
         }
     }
 }

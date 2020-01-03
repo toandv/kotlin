@@ -64,7 +64,7 @@ interface SourceCompilerForInline {
         curFinallyDepth: Int
     ): BaseExpressionCodegen
 
-    fun generateFinallyBlocksIfNeeded(finallyCodegen: BaseExpressionCodegen, returnType: Type, afterReturnLabel: Label)
+    fun generateFinallyBlocksIfNeeded(codegen: BaseExpressionCodegen, returnType: Type, afterReturnLabel: Label, target: Label?)
 
     fun isCallInsideSameModuleAsDeclared(functionDescriptor: FunctionDescriptor): Boolean
 
@@ -75,6 +75,8 @@ interface SourceCompilerForInline {
     val compilationContextFunctionDescriptor: FunctionDescriptor
 
     fun getContextLabels(): Set<String>
+
+    fun getJumpTarget(label: String): Label?
 
     fun reportSuspensionPointInsideMonitor(stackTraceElement: String)
 }
@@ -322,10 +324,13 @@ class PsiSourceCompilerForInline(private val codegen: ExpressionCodegen, overrid
 
     override fun hasFinallyBlocks() = codegen.hasFinallyBlocks()
 
-    override fun generateFinallyBlocksIfNeeded(finallyCodegen: BaseExpressionCodegen, returnType: Type, afterReturnLabel: Label) {
-        require(finallyCodegen is ExpressionCodegen)
-        finallyCodegen.generateFinallyBlocksIfNeeded(returnType, null, afterReturnLabel)
+    override fun generateFinallyBlocksIfNeeded(codegen: BaseExpressionCodegen, returnType: Type, afterReturnLabel: Label, target: Label?) {
+        // TODO use the target label for non-local break/continue
+        require(codegen is ExpressionCodegen)
+        codegen.generateFinallyBlocksIfNeeded(returnType, null, afterReturnLabel)
     }
+
+    override fun getJumpTarget(label: String): Label? = null
 
     override fun createCodegenForExternalFinallyBlockGenerationOnNonLocalReturn(finallyNode: MethodNode, curFinallyDepth: Int) =
         ExpressionCodegen(

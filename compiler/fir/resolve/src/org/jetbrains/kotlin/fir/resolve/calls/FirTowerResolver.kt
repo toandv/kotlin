@@ -11,6 +11,7 @@ import org.jetbrains.kotlin.fir.declarations.FirRegularClass
 import org.jetbrains.kotlin.fir.declarations.impl.FirImportImpl
 import org.jetbrains.kotlin.fir.declarations.impl.FirResolvedImportImpl
 import org.jetbrains.kotlin.fir.declarations.isInner
+import org.jetbrains.kotlin.fir.expressions.FirExpression
 import org.jetbrains.kotlin.fir.expressions.FirResolvedQualifier
 import org.jetbrains.kotlin.fir.expressions.impl.FirQualifiedAccessExpressionImpl
 import org.jetbrains.kotlin.fir.resolve.BodyResolveComponents
@@ -22,6 +23,7 @@ import org.jetbrains.kotlin.fir.scopes.FirScope
 import org.jetbrains.kotlin.fir.scopes.ProcessorAction.NONE
 import org.jetbrains.kotlin.fir.scopes.impl.FirExplicitSimpleImportingScope
 import org.jetbrains.kotlin.fir.scopes.impl.FirLocalScope
+import org.jetbrains.kotlin.fir.symbols.AbstractFirBasedSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirCallableSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirClassSymbol
 import org.jetbrains.kotlin.fir.types.ConeIntegerLiteralType
@@ -237,7 +239,9 @@ class FirTowerResolver(
                     )
                 }
             }
-            else -> throw AssertionError("Unsupported call kind in tower resolver: ${info.callKind}")
+            else -> {
+                throw AssertionError("Unsupported call kind in tower resolver: ${info.callKind}")
+            }
         }
     }
 
@@ -329,6 +333,9 @@ class FirTowerResolver(
         if (receiver is FirResolvedQualifier && receiver.classId == null) {
             return runResolverForFullyQualifiedReceiver(implicitReceiverValues, info, collector, receiver)
         }
+        if (receiver != null) {
+            return runResolverForExplicitReceiver(implicitReceiverValues, info, collector, receiver)
+        }
 
         towerDataConsumer = towerDataConsumer(info, collector)
         val shouldProcessExtensionsBeforeMembers =
@@ -400,6 +407,178 @@ class FirTowerResolver(
             group = processTopLevelScope(towerDataConsumer, topLevelScope, group)
         }
 
+        return collector
+    }
+
+    private class ExplicitReceiverTowerScopeLevelProcessor(
+        val explicitReceiverKind: ExplicitReceiverKind,
+        val resultCollector: CandidateCollector,
+        val candidateFactory: CandidateFactory,
+        val group: Int
+    ) : TowerScopeLevel.TowerScopeLevelProcessor<AbstractFirBasedSymbol<*>> {
+        override fun consumeCandidate(
+            symbol: AbstractFirBasedSymbol<*>,
+            dispatchReceiverValue: ReceiverValue?,
+            implicitExtensionReceiverValue: ImplicitReceiverValue<*>?,
+            builtInExtensionFunctionReceiverValue: ReceiverValue?
+        ) {
+            // TODO: check extension receiver for default package members (?!)
+            // See TowerLevelKindTowerProcessor
+            resultCollector.consumeCandidate(
+                group, candidateFactory.createCandidate(
+                    symbol,
+                    explicitReceiverKind,
+                    dispatchReceiverValue,
+                    implicitExtensionReceiverValue,
+                    builtInExtensionFunctionReceiverValue
+                )
+            )
+        }
+    }
+
+    private inner class ExplicitReceiverHandler(
+        val info: CallInfo,
+        val receiverValue: ExpressionReceiverValue,
+        val resultCollector: CandidateCollector,
+        val groupLimit: Int
+    ) {
+        var group = 0
+
+        fun nextGroup() {
+            group++
+        }
+
+        fun TowerScopeLevel.handleLevel(): ExplicitReceiverHandler {
+            if (group > groupLimit) {
+                return this@ExplicitReceiverHandler
+            }
+            val candidateFactory = CandidateFactory(components, info)
+            val explicitReceiverKind = if (this is MemberScopeTowerLevel && this.dispatchReceiver is ExpressionReceiverValue) {
+                ExplicitReceiverKind.DISPATCH_RECEIVER
+            } else {
+                ExplicitReceiverKind.EXTENSION_RECEIVER
+            }
+            val implicitExtensionInvokeMode = (this as? MemberScopeTowerLevel)?.implicitExtensionInvokeMode == true
+            val processor = ExplicitReceiverTowerScopeLevelProcessor(explicitReceiverKind, resultCollector, candidateFactory, group)
+            when (info.callKind) {
+                CallKind.VariableAccess -> {
+                    processElementsByName(TowerScopeLevel.Token.Properties, info.name, receiverValue, processor)
+                    processElementsByName(TowerScopeLevel.Token.Objects, info.name, receiverValue, processor)
+                }
+                CallKind.Function -> {
+                    processElementsByName(TowerScopeLevel.Token.Functions, info.name, receiverValue, processor)
+
+                    val invokeReceiverCollector = CandidateCollector(components, components.resolutionStageRunner)
+                    val invokeReceiverCandidateFactory = CandidateFactory(
+                        components,
+                        info.replaceWithVariableAccess()
+                    )
+                    val invokeReceiverProcessor = ExplicitReceiverTowerScopeLevelProcessor(
+                        explicitReceiverKind, invokeReceiverCollector, invokeReceiverCandidateFactory, group
+                    )
+                    processElementsByName(TowerScopeLevel.Token.Properties, info.name, receiverValue, invokeReceiverProcessor)
+
+                    if (invokeReceiverCollector.isSuccess()) {
+                        for (invokeReceiverCandidate in invokeReceiverCollector.bestCandidates()) {
+                            val extensionReceiverExpression = invokeReceiverCandidate.extensionReceiverExpression()
+                            val invokeReceiverExpression = createExplicitReceiverForInvoke(invokeReceiverCandidate).let {
+                                if (!implicitExtensionInvokeMode) {
+                                    it.extensionReceiver = extensionReceiverExpression
+                                }
+                                components.transformQualifiedAccessUsingSmartcastInfo(it)
+                            }
+                            runResolverForExplicitReceiver(
+                                implicitReceiverValues,
+                                info.copy(explicitReceiver = invokeReceiverExpression, name = OperatorNameConventions.INVOKE).let {
+                                    if (implicitExtensionInvokeMode) it.withReceiverAsArgument(extensionReceiverExpression)
+                                    else it
+                                },
+                                resultCollector,
+                                invokeReceiverExpression,
+                                groupLimit = group
+                            )
+                        }
+                    }
+                }
+                CallKind.CallableReference -> {
+                    processElementsByName(TowerScopeLevel.Token.Functions, info.name, receiverValue, processor)
+                    processElementsByName(TowerScopeLevel.Token.Properties, info.name, receiverValue, processor)
+                    val stubReceiver = info.stubReceiver
+                    if (stubReceiver != null) {
+                        val stubReceiverValue = ExpressionReceiverValue(stubReceiver)
+                        processElementsByName(TowerScopeLevel.Token.Functions, info.name, stubReceiverValue, processor)
+                        processElementsByName(TowerScopeLevel.Token.Properties, info.name, stubReceiverValue, processor)
+                    }
+                }
+                else -> {
+                    throw AssertionError("Unsupported call kind in tower resolver: ${info.callKind}")
+                }
+            }
+            return this@ExplicitReceiverHandler
+        }
+    }
+
+    private fun runResolverForExplicitReceiver(
+        implicitReceiverValues: List<ImplicitReceiverValue<*>>,
+        info: CallInfo,
+        collector: CandidateCollector,
+        explicitReceiver: FirExpression,
+        groupLimit: Int = Int.MAX_VALUE
+    ): CandidateCollector {
+        val explicitReceiverValue = ExpressionReceiverValue(explicitReceiver)
+        val explicitReceiverHandler = ExplicitReceiverHandler(info, explicitReceiverValue, collector, groupLimit)
+        with(explicitReceiverHandler) {
+            val shouldProcessExtensionsBeforeMembers =
+                info.callKind == CallKind.Function && info.name in HIDES_MEMBERS_NAME_LIST
+            if (shouldProcessExtensionsBeforeMembers) {
+                // Special case (extension hides member)
+                for (topLevelScope in topLevelScopes) {
+                    ScopeTowerLevel(
+                        session, components, topLevelScope, extensionsOnly = true
+                    ).handleLevel().nextGroup()
+                }
+            }
+            // 1. Non-extension members (or statics if explicitReceiver is FirResolvedQualifier)
+            MemberScopeTowerLevel(
+                session, components, dispatchReceiver = explicitReceiverValue, scopeSession = components.scopeSession
+            ).handleLevel().nextGroup()
+            val shouldProcessExplicitReceiverScopeOnly =
+                info.callKind == CallKind.Function && info.explicitReceiver?.typeRef?.coneTypeSafe<ConeIntegerLiteralType>() != null
+            if (shouldProcessExplicitReceiverScopeOnly) {
+                // Special case (integer literal type)
+                return collector
+            }
+            // 2. Local extension callables
+            for (localScope in localScopes) {
+                ScopeTowerLevel(
+                    session, components, localScope
+                ).handleLevel().nextGroup()
+            }
+            for (implicitReceiverValue in implicitReceiverValues) {
+                // TODO: move to 1?
+                MemberScopeTowerLevel(
+                    session, components, dispatchReceiver = implicitReceiverValue, scopeSession = components.scopeSession
+                ).handleLevel().nextGroup()
+                MemberScopeTowerLevel(
+                    session, components, dispatchReceiver = explicitReceiverValue,
+                    implicitExtensionReceiver = implicitReceiverValue,
+                    implicitExtensionInvokeMode = true,
+                    scopeSession = components.scopeSession
+                ).handleLevel().nextGroup()
+                //
+                for (scope in localScopes) {
+                    ScopeTowerLevel(
+                        session, components, scope, implicitExtensionReceiver = implicitReceiverValue
+                    ).handleLevel().nextGroup()
+                }
+            }
+            // 3-6. Top-level & importing scopes
+            for (topLevelScope in topLevelScopes) {
+                ScopeTowerLevel(
+                    session, components, topLevelScope
+                ).handleLevel().nextGroup()
+            }
+        }
         return collector
     }
 }

@@ -455,6 +455,7 @@ class FirTowerResolver(
         val groupLimit: Int
     ) {
         var group = 0
+        val invokeReceiverCollector = CandidateCollector(components, components.resolutionStageRunner)
 
         suspend fun nextGroup() {
             group++
@@ -488,17 +489,19 @@ class FirTowerResolver(
                 CallKind.Function -> {
                     processElementsByName(TowerScopeLevel.Token.Functions, info.name, receiverValue, processor)
 
-                    val invokeReceiverCollector = CandidateCollector(components, components.resolutionStageRunner)
-                    val invokeReceiverCandidateFactory = CandidateFactory(
-                        components,
-                        info.replaceWithVariableAccess()
-                    )
-                    val invokeReceiverProcessor = ExplicitReceiverTowerScopeLevelProcessor(
-                        explicitReceiverKind, invokeReceiverCollector, invokeReceiverCandidateFactory, group
-                    )
-                    processElementsByName(TowerScopeLevel.Token.Properties, info.name, receiverValue, invokeReceiverProcessor)
+                    val prev = invokeReceiverCollector.isSuccess()
+                    if (!invokeReceiverCollector.isSuccess()) {
+                        val invokeReceiverCandidateFactory = CandidateFactory(
+                            components,
+                            info.replaceWithVariableAccess()
+                        )
+                        val invokeReceiverProcessor = ExplicitReceiverTowerScopeLevelProcessor(
+                            explicitReceiverKind, invokeReceiverCollector, invokeReceiverCandidateFactory, group
+                        )
+                        processElementsByName(TowerScopeLevel.Token.Properties, info.name, receiverValue, invokeReceiverProcessor)
+                    }
 
-                    if (invokeReceiverCollector.isSuccess()) {
+                    if (!prev && invokeReceiverCollector.isSuccess()) {
                         for (invokeReceiverCandidate in invokeReceiverCollector.bestCandidates()) {
                             val extensionReceiverExpression = invokeReceiverCandidate.extensionReceiverExpression()
                             val invokeReceiverExpression = createExplicitReceiverForInvoke(invokeReceiverCandidate).let {
@@ -508,7 +511,7 @@ class FirTowerResolver(
                                 components.transformQualifiedAccessUsingSmartcastInfo(it)
                             }
 
-                            suspend {
+                            val coroutine = suspend {
                                 runResolverForUnqualifiedReceiver(
                                     implicitReceiverValues,
                                     info.copy(explicitReceiver = invokeReceiverExpression, name = OperatorNameConventions.INVOKE).let {
@@ -518,12 +521,13 @@ class FirTowerResolver(
                                     resultCollector
                                 )
                                 Unit
-                            }.startCoroutine(object : Continuation<Unit> {
+                            }.createCoroutine(object : Continuation<Unit> {
                                 override val context: CoroutineContext
                                     get() = EmptyCoroutineContext
 
                                 override fun resumeWith(result: Result<Unit>) {}
                             })
+                            sleeping.add(WaitingForGroup(coroutine, 0))
 
                         }
                     }

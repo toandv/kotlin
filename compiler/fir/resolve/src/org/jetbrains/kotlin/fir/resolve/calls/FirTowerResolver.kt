@@ -409,7 +409,7 @@ class FirTowerResolver(
         return collector
     }
 
-    private class ExplicitReceiverTowerScopeLevelProcessor(
+    private class TowerScopeLevelProcessor(
         val explicitReceiverKind: ExplicitReceiverKind,
         val resultCollector: CandidateCollector,
         val candidateFactory: CandidateFactory,
@@ -480,7 +480,7 @@ class FirTowerResolver(
                 ExplicitReceiverKind.EXTENSION_RECEIVER
             }
             val implicitExtensionInvokeMode = (this as? MemberScopeTowerLevel)?.implicitExtensionInvokeMode == true
-            val processor = ExplicitReceiverTowerScopeLevelProcessor(explicitReceiverKind, resultCollector, candidateFactory, group)
+            val processor = TowerScopeLevelProcessor(explicitReceiverKind, resultCollector, candidateFactory, group)
             when (info.callKind) {
                 CallKind.VariableAccess -> {
                     processElementsByName(TowerScopeLevel.Token.Properties, info.name, receiverValue, processor)
@@ -495,7 +495,7 @@ class FirTowerResolver(
                             components,
                             info.replaceWithVariableAccess()
                         )
-                        val invokeReceiverProcessor = ExplicitReceiverTowerScopeLevelProcessor(
+                        val invokeReceiverProcessor = TowerScopeLevelProcessor(
                             explicitReceiverKind, invokeReceiverCollector, invokeReceiverCandidateFactory, group
                         )
                         processElementsByName(TowerScopeLevel.Token.Properties, info.name, receiverValue, invokeReceiverProcessor)

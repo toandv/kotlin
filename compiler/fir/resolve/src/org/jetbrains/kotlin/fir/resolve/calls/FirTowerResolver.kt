@@ -11,7 +11,6 @@ import org.jetbrains.kotlin.fir.declarations.FirRegularClass
 import org.jetbrains.kotlin.fir.declarations.impl.FirImportImpl
 import org.jetbrains.kotlin.fir.declarations.impl.FirResolvedImportImpl
 import org.jetbrains.kotlin.fir.declarations.isInner
-import org.jetbrains.kotlin.fir.expressions.FirExpression
 import org.jetbrains.kotlin.fir.expressions.FirResolvedQualifier
 import org.jetbrains.kotlin.fir.expressions.impl.FirQualifiedAccessExpressionImpl
 import org.jetbrains.kotlin.fir.resolve.BodyResolveComponents
@@ -648,6 +647,23 @@ class FirTowerResolver(
                 } else {
                     nextGroup(implicitReceiverValues.size)
                 }
+
+                if (implicitReceiverValue is ImplicitDispatchReceiverValue) {
+                    val implicitCompanionScopes = implicitReceiverValue.implicitCompanionScopes
+                    if (explicitReceiverValue == null) {
+                        for (implicitCompanionScope in implicitCompanionScopes) {
+                            // Companion scope bound to implicit receiver scope
+                            // class Outer {
+                            //     companion object { val x = 0 }
+                            //     class Nested { val y = x }
+                            // }
+                            ScopeTowerLevel(session, components, implicitCompanionScope).handleLevel().nextGroup()
+                        }
+                    } else {
+                        nextGroup(implicitCompanionScopes.size)
+                    }
+                }
+
             }
 
             // 3-6. Top-level & importing scopes

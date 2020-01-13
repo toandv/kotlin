@@ -436,9 +436,9 @@ class FirTowerResolver(
         }
     }
 
-    private inner class ExplicitReceiverHandler(
+    private inner class LevelHandler(
         val info: CallInfo,
-        val receiverValue: ExpressionReceiverValue,
+        val receiverValue: ExpressionReceiverValue?,
         val resultCollector: CandidateCollector,
         val groupLimit: Int
     ) {
@@ -448,9 +448,9 @@ class FirTowerResolver(
             group++
         }
 
-        fun TowerScopeLevel.handleLevel(): ExplicitReceiverHandler {
+        fun TowerScopeLevel.handleLevel(): LevelHandler {
             if (group > groupLimit) {
-                return this@ExplicitReceiverHandler
+                return this@LevelHandler
             }
             val candidateFactory = CandidateFactory(components, info)
             val explicitReceiverKind = if (this is MemberScopeTowerLevel && this.dispatchReceiver is ExpressionReceiverValue) {
@@ -495,6 +495,7 @@ class FirTowerResolver(
                                 },
                                 resultCollector,
                                 invokeReceiverExpression,
+                                // TODO: later we should process these candidates for upper tower levels
                                 groupLimit = group
                             )
                         }
@@ -514,7 +515,66 @@ class FirTowerResolver(
                     throw AssertionError("Unsupported call kind in tower resolver: ${info.callKind}")
                 }
             }
-            return this@ExplicitReceiverHandler
+            return this@LevelHandler
+        }
+    }
+
+    private fun runResolverForNoExplicitReceiver(
+        implicitReceiverValues: List<ImplicitReceiverValue<*>>,
+        info: CallInfo,
+        collector: CandidateCollector
+    ) {
+        val levelHandler = LevelHandler(info, null, collector, Int.MAX_VALUE)
+        with(levelHandler) {
+            val shouldProcessExtensionsBeforeMembers =
+                info.callKind == CallKind.Function && info.name in HIDES_MEMBERS_NAME_LIST
+            if (shouldProcessExtensionsBeforeMembers) {
+                // Special case (extension hides member)
+                for (topLevelScope in topLevelScopes) {
+                    ScopeTowerLevel(
+                        session, components, topLevelScope, extensionsOnly = true
+                    ).handleLevel().nextGroup()
+                }
+            }
+
+            for (localScope in localScopes) {
+                ScopeTowerLevel(
+                    session, components, localScope
+                ).handleLevel().nextGroup()
+            }
+
+            for (implicitReceiverValue in implicitReceiverValues) {
+                // TODO: move to 1?
+                MemberScopeTowerLevel(
+                    session, components, dispatchReceiver = implicitReceiverValue, scopeSession = components.scopeSession
+                ).handleLevel().nextGroup()
+
+//                MemberScopeTowerLevel(
+//                    session, components, dispatchReceiver = implicitReceiverValue, implicitExtensionReceiver = implicitReceiverValue, scopeSession = components.scopeSession
+//                ).handleLevel().nextGroup()
+
+                //
+                for (scope in localScopes) {
+                    ScopeTowerLevel(
+                        session, components, scope, implicitExtensionReceiver = implicitReceiverValue
+                    ).handleLevel().nextGroup()
+                }
+
+                // NB: no-receiver specific
+                for (implicitExtensionReceiverValue in implicitReceiverValues) {
+                    MemberScopeTowerLevel(
+                        session, components, dispatchReceiver = implicitReceiverValue, implicitExtensionReceiver = implicitExtensionReceiverValue, scopeSession = components.scopeSession
+                    ).handleLevel().nextGroup()
+                }
+            }
+
+            // 3-6. Top-level & importing scopes
+            for (topLevelScope in topLevelScopes) {
+                ScopeTowerLevel(
+                    session, components, topLevelScope
+                ).handleLevel().nextGroup()
+            }
+
         }
     }
 
@@ -526,7 +586,7 @@ class FirTowerResolver(
         groupLimit: Int = Int.MAX_VALUE
     ): CandidateCollector {
         val explicitReceiverValue = ExpressionReceiverValue(explicitReceiver)
-        val explicitReceiverHandler = ExplicitReceiverHandler(info, explicitReceiverValue, collector, groupLimit)
+        val explicitReceiverHandler = LevelHandler(info, explicitReceiverValue, collector, groupLimit)
         with(explicitReceiverHandler) {
             val shouldProcessExtensionsBeforeMembers =
                 info.callKind == CallKind.Function && info.name in HIDES_MEMBERS_NAME_LIST

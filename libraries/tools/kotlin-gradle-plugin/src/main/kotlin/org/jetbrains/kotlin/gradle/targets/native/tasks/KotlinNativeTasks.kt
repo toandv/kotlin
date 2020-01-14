@@ -619,7 +619,7 @@ open class KotlinNativeLink : AbstractKotlinNativeCompile<KotlinCommonToolOption
     }
 }
 
-class CacheBuilder(val project: Project, val binary: NativeBinary) {
+internal class CacheBuilder(val project: Project, val binary: NativeBinary) {
     private val compilation: KotlinNativeCompilation
         get() = binary.compilation
 
@@ -639,10 +639,9 @@ class CacheBuilder(val project: Project, val binary: NativeBinary) {
     private val target: String
         get() = compilation.konanTarget.name
 
-    private val optionsAwareCacheName get() = "$target${if (debuggable) "-g" else ""}$konanCacheKind"
-
-    private val rootCacheDirectory
-        get() = File(project.konanHome).resolve("klib/cache/$optionsAwareCacheName")
+    private val rootCacheDirectory by lazy {
+        getRootCacheDirectory(File(project.konanHome), compilation.konanTarget, debuggable, konanCacheKind)
+    }
 
     private fun getAllDependencies(dependency: ResolvedDependency): Set<ResolvedDependency> {
         val allDependencies = mutableSetOf<ResolvedDependency>()
@@ -816,6 +815,16 @@ class CacheBuilder(val project: Project, val binary: NativeBinary) {
             for (cacheDirectory in allCacheDirectories)
                 add("-Xcache-directory=$cacheDirectory")
         }
+    }
+
+    companion object {
+        internal fun getRootCacheDirectory(konanHome: File, target: KonanTarget, debuggable: Boolean, cacheKind: NativeCacheKind): File {
+            require(cacheKind != NativeCacheKind.NONE) { "Usupported cache kind: ${NativeCacheKind.NONE}" }
+            val optionsAwareCacheName = "$target${if (debuggable) "-g" else ""}$cacheKind"
+            return konanHome.resolve("klib/cache/$optionsAwareCacheName")
+        }
+
+        internal val DEFAULT_CACHE_KIND: NativeCacheKind = NativeCacheKind.STATIC
     }
 }
 

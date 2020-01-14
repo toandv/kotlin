@@ -6,8 +6,11 @@
 package org.jetbrains.kotlin.gradle.utils
 
 import org.gradle.api.Project
+import org.gradle.api.file.RegularFile
+import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
+import java.io.File
 import kotlin.reflect.KProperty
 
 internal operator fun <T> Provider<T>.getValue(thisRef: Any?, property: KProperty<*>) = get()
@@ -22,4 +25,11 @@ internal fun <T : Any> Project.newProperty(initialize: (() -> T)? = null): Prope
     (project.objects.property(Any::class.java) as Property<T>).apply {
         if (initialize != null)
             set(provider(initialize))
+    }
+
+internal fun Project.newFileProperty(initialize: (() -> File)? = null): RegularFileProperty =
+    project.objects.fileProperty().apply {
+        if (initialize != null) {
+            set(provider { RegularFile(initialize) })
+        }
     }

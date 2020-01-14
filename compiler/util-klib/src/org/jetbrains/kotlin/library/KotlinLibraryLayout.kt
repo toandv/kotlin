@@ -29,15 +29,20 @@ interface KotlinLibraryLayout {
     val libDir: File
     val libraryName: String
         get() = libDir.path
+    val component: String?
+    val componentDir: File
+        get() = File(libDir, component!!)
     val manifestFile
-        get() = File(libDir, KLIB_MANIFEST_FILE_NAME)
+        get() = File(componentDir, KLIB_MANIFEST_FILE_NAME)
     val resourcesDir
-        get() = File(libDir, "resources")
+        get() = File(componentDir, "resources")
+    val pre_1_4_manifest: File
+        get() = File(libDir, KLIB_MANIFEST_FILE_NAME)
 }
 
 interface MetadataKotlinLibraryLayout : KotlinLibraryLayout {
     val metadataDir
-        get() = File(libDir, "linkdata")
+        get() = File(componentDir, "linkdata")
     val moduleHeaderFile
         get() = File(metadataDir, KLIB_MODULE_METADATA_FILE_NAME)
 
@@ -50,7 +55,7 @@ interface MetadataKotlinLibraryLayout : KotlinLibraryLayout {
 
 interface IrKotlinLibraryLayout : KotlinLibraryLayout {
     val irDir
-        get() = File(libDir, "ir")
+        get() = File(componentDir, "ir")
     val irDeclarations
         get() = File(irDir, "irDeclarations.knd")
     val irSymbols

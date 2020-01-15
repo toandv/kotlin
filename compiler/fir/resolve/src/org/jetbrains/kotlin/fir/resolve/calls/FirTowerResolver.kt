@@ -25,8 +25,10 @@ import org.jetbrains.kotlin.fir.scopes.impl.FirLocalScope
 import org.jetbrains.kotlin.fir.symbols.AbstractFirBasedSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirCallableSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirClassSymbol
+import org.jetbrains.kotlin.fir.symbols.impl.FirVariableSymbol
 import org.jetbrains.kotlin.fir.types.ConeIntegerLiteralType
 import org.jetbrains.kotlin.fir.types.coneTypeSafe
+import org.jetbrains.kotlin.fir.types.isExtensionFunctionType
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.resolve.calls.tasks.ExplicitReceiverKind
 import org.jetbrains.kotlin.resolve.descriptorUtil.HIDES_MEMBERS_NAME_LIST
@@ -211,6 +213,7 @@ class FirTowerResolver(
 
     fun reset() {
         collector.newDataSet()
+        sleeping.clear()
     }
 
     val collector = CandidateCollector(components, resolutionStageRunner)
@@ -479,7 +482,7 @@ class FirTowerResolver(
             } else {
                 ExplicitReceiverKind.EXTENSION_RECEIVER
             }
-            val implicitExtensionInvokeMode = (this as? MemberScopeTowerLevel)?.implicitExtensionInvokeMode == true
+//            val implicitExtensionInvokeMode = (this as? MemberScopeTowerLevel)?.implicitExtensionInvokeMode == true
             val processor = TowerScopeLevelProcessor(explicitReceiverKind, resultCollector, candidateFactory, group)
             when (info.callKind) {
                 CallKind.VariableAccess -> {
@@ -504,8 +507,14 @@ class FirTowerResolver(
                     if (!prev && invokeReceiverCollector.isSuccess()) {
                         for (invokeReceiverCandidate in invokeReceiverCollector.bestCandidates()) {
                             val extensionReceiverExpression = invokeReceiverCandidate.extensionReceiverExpression()
+
+                            val symbol = invokeReceiverCandidate.symbol as FirVariableSymbol<*>
+                            val useExtensionReceiverAsArgument =
+                                symbol.fir.receiverTypeRef == null &&
+                                        invokeReceiverCandidate.explicitReceiverKind == ExplicitReceiverKind.EXTENSION_RECEIVER &&
+                                        symbol.fir.returnTypeRef.isExtensionFunctionType()
                             val invokeReceiverExpression = createExplicitReceiverForInvoke(invokeReceiverCandidate).let {
-                                if (!implicitExtensionInvokeMode) {
+                                if (!useExtensionReceiverAsArgument) {
                                     it.extensionReceiver = extensionReceiverExpression
                                 }
                                 components.transformQualifiedAccessUsingSmartcastInfo(it)
@@ -515,7 +524,7 @@ class FirTowerResolver(
                                 runResolverForUnqualifiedReceiver(
                                     implicitReceiverValues,
                                     info.copy(explicitReceiver = invokeReceiverExpression, name = OperatorNameConventions.INVOKE).let {
-                                        if (implicitExtensionInvokeMode) it.withReceiverAsArgument(extensionReceiverExpression)
+                                        if (useExtensionReceiverAsArgument) it.withReceiverAsArgument(extensionReceiverExpression)
                                         else it
                                     },
                                     resultCollector

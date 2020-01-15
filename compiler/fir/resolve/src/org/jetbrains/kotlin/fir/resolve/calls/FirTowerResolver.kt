@@ -7,10 +7,9 @@ package org.jetbrains.kotlin.fir.resolve.calls
 
 import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.fir.FirSession
-import org.jetbrains.kotlin.fir.declarations.FirRegularClass
+import org.jetbrains.kotlin.fir.declarations.*
 import org.jetbrains.kotlin.fir.declarations.impl.FirImportImpl
 import org.jetbrains.kotlin.fir.declarations.impl.FirResolvedImportImpl
-import org.jetbrains.kotlin.fir.declarations.isInner
 import org.jetbrains.kotlin.fir.expressions.FirResolvedQualifier
 import org.jetbrains.kotlin.fir.expressions.impl.FirQualifiedAccessExpressionImpl
 import org.jetbrains.kotlin.fir.resolve.BodyResolveComponents
@@ -416,7 +415,8 @@ class FirTowerResolver(
         val explicitReceiverKind: ExplicitReceiverKind,
         val resultCollector: CandidateCollector,
         val candidateFactory: CandidateFactory,
-        val group: Int
+        val group: Int,
+        val noStatics: Boolean
     ) : TowerScopeLevel.TowerScopeLevelProcessor<AbstractFirBasedSymbol<*>> {
         override fun consumeCandidate(
             symbol: AbstractFirBasedSymbol<*>,
@@ -424,6 +424,7 @@ class FirTowerResolver(
             implicitExtensionReceiverValue: ImplicitReceiverValue<*>?,
             builtInExtensionFunctionReceiverValue: ReceiverValue?
         ) {
+            if (noStatics && (symbol.fir as? FirCallableMemberDeclaration<*>)?.isStatic == true) return
             // TODO: check extension receiver for default package members (?!)
             // See TowerLevelKindTowerProcessor
             resultCollector.consumeCandidate(
@@ -443,8 +444,10 @@ class FirTowerResolver(
     val sleeping = ArrayDeque<WaitingForGroup>()
 
     suspend fun waitGroup(num: Int) {
-        val q = sleeping.peekFirst()
-        if (q == null || q.groupNum > num) return
+        if (!collector.isSuccess()) {
+            val q = sleeping.peekFirst()
+            if (q == null || q.groupNum > num) return
+        }
 
         suspendCoroutine<Unit> {
             sleeping.addLast(WaitingForGroup(it, num))
@@ -454,8 +457,7 @@ class FirTowerResolver(
     private inner class LevelHandler(
         val info: CallInfo,
         val receiverValue: AbstractExplicitReceiver<*>?,
-        val resultCollector: CandidateCollector,
-        val groupLimit: Int
+        val resultCollector: CandidateCollector
     ) {
         var group = 0
         val invokeReceiverCollector = CandidateCollector(components, components.resolutionStageRunner)
@@ -471,19 +473,20 @@ class FirTowerResolver(
         }
 
         fun TowerScopeLevel.handleLevel(): LevelHandler {
-            if (group > groupLimit) {
-                return this@LevelHandler
-            }
             val candidateFactory = CandidateFactory(components, info)
-            val explicitReceiverKind = if (receiverValue == null) {
+            val explicitReceiverKind = if (receiverValue == null || receiverValue is QualifierReceiver) {
                 ExplicitReceiverKind.NO_EXPLICIT_RECEIVER
-            } else if (this is MemberScopeTowerLevel && this.dispatchReceiver is AbstractExplicitReceiver<*>) {
+            } else if (
+                this is MemberScopeTowerLevel &&
+                this.dispatchReceiver is AbstractExplicitReceiver<*>
+            ) {
                 ExplicitReceiverKind.DISPATCH_RECEIVER
             } else {
                 ExplicitReceiverKind.EXTENSION_RECEIVER
             }
 //            val implicitExtensionInvokeMode = (this as? MemberScopeTowerLevel)?.implicitExtensionInvokeMode == true
-            val processor = TowerScopeLevelProcessor(explicitReceiverKind, resultCollector, candidateFactory, group)
+            val processor =
+                TowerScopeLevelProcessor(explicitReceiverKind, resultCollector, candidateFactory, group, this is MemberScopeTowerLevel && receiverValue !is QualifierReceiver)
             when (info.callKind) {
                 CallKind.VariableAccess -> {
                     processElementsByName(TowerScopeLevel.Token.Properties, info.name, receiverValue, processor)
@@ -499,7 +502,11 @@ class FirTowerResolver(
                             info.replaceWithVariableAccess()
                         )
                         val invokeReceiverProcessor = TowerScopeLevelProcessor(
-                            explicitReceiverKind, invokeReceiverCollector, invokeReceiverCandidateFactory, group
+                            explicitReceiverKind,
+                            invokeReceiverCollector,
+                            invokeReceiverCandidateFactory,
+                            group,
+                            this is MemberScopeTowerLevel && receiverValue !is QualifierReceiver
                         )
                         processElementsByName(TowerScopeLevel.Token.Properties, info.name, receiverValue, invokeReceiverProcessor)
                     }
@@ -587,7 +594,7 @@ class FirTowerResolver(
         collector: CandidateCollector
     ): CandidateCollector {
         val explicitReceiverValue = info.explicitReceiver?.let { qualifierOrExpressionReceiver(it) }
-        val levelHandler = LevelHandler(info, explicitReceiverValue, collector, Int.MAX_VALUE)
+        val levelHandler = LevelHandler(info, explicitReceiverValue, collector)
         with(levelHandler) {
             val shouldProcessExtensionsBeforeMembers =
                 info.callKind == CallKind.Function && info.name in HIDES_MEMBERS_NAME_LIST

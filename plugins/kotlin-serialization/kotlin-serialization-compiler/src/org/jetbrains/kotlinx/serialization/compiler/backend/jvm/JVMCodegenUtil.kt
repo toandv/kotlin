@@ -83,11 +83,11 @@ internal fun InstructionAdapter.genValidateProperty(index: Int, bitMaskAddress: 
     iconst(0)
 }
 
-internal fun InstructionAdapter.genExceptionThrow(exceptionClass: String, message: String) {
-    anew(Type.getObjectType(exceptionClass))
+internal fun InstructionAdapter.genMissingFieldExceptionThrow(fieldName: String) {
+    anew(Type.getObjectType(serializationExceptionMissingFieldName))
     dup()
-    aconst(message)
-    invokespecial(exceptionClass, "<init>", "(Ljava/lang/String;)V", false)
+    aconst(fieldName)
+    invokespecial(serializationExceptionMissingFieldName, "<init>", "(Ljava/lang/String;)V", false)
     checkcast(Type.getObjectType("java/lang/Throwable"))
     athrow()
 }

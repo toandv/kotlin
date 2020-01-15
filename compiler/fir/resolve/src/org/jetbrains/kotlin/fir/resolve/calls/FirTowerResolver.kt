@@ -450,7 +450,7 @@ class FirTowerResolver(
 
     private inner class LevelHandler(
         val info: CallInfo,
-        val receiverValue: ExpressionReceiverValue?,
+        val receiverValue: AbstractExplicitReceiver<*>?,
         val resultCollector: CandidateCollector,
         val groupLimit: Int
     ) {
@@ -474,7 +474,7 @@ class FirTowerResolver(
             val candidateFactory = CandidateFactory(components, info)
             val explicitReceiverKind = if (receiverValue == null) {
                 ExplicitReceiverKind.NO_EXPLICIT_RECEIVER
-            } else if (this is MemberScopeTowerLevel && this.dispatchReceiver is ExpressionReceiverValue) {
+            } else if (this is MemberScopeTowerLevel && this.dispatchReceiver is AbstractExplicitReceiver<*>) {
                 ExplicitReceiverKind.DISPATCH_RECEIVER
             } else {
                 ExplicitReceiverKind.EXTENSION_RECEIVER
@@ -537,7 +537,7 @@ class FirTowerResolver(
                     processElementsByName(TowerScopeLevel.Token.Properties, info.name, receiverValue, processor)
                     val stubReceiver = info.stubReceiver
                     if (stubReceiver != null) {
-                        val stubReceiverValue = ExpressionReceiverValue(stubReceiver)
+                        val stubReceiverValue = qualifierOrExpressionReceiver(stubReceiver)
                         processElementsByName(TowerScopeLevel.Token.Functions, info.name, stubReceiverValue, processor)
                         processElementsByName(TowerScopeLevel.Token.Properties, info.name, stubReceiverValue, processor)
                     }
@@ -577,7 +577,7 @@ class FirTowerResolver(
         info: CallInfo,
         collector: CandidateCollector
     ): CandidateCollector {
-        val explicitReceiverValue = info.explicitReceiver?.let { ExpressionReceiverValue(it) }
+        val explicitReceiverValue = info.explicitReceiver?.let { qualifierOrExpressionReceiver(it) }
         val levelHandler = LevelHandler(info, explicitReceiverValue, collector, Int.MAX_VALUE)
         with(levelHandler) {
             val shouldProcessExtensionsBeforeMembers =

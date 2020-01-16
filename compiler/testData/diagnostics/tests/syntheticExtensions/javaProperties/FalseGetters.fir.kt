@@ -2,7 +2,7 @@
 fun foo(javaClass: JavaClass) {
     javaClass.<!UNRESOLVED_REFERENCE!>something1<!>
     javaClass.<!UNRESOLVED_REFERENCE!>something2<!>
-    javaClass.somethingStatic
+    javaClass.<!UNRESOLVED_REFERENCE!>somethingStatic<!>
     javaClass.somethingVoid
     javaClass.<!UNRESOLVED_REFERENCE!>ter<!>
 }

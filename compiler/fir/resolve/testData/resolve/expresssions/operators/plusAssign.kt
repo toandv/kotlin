@@ -7,7 +7,7 @@ class Foo {
 
 fun test_1() {
     val f = Foo()
-    f <!UNRESOLVED_REFERENCE!>+<!> f
+    f <!INAPPLICABLE_CANDIDATE!>+<!> f
 }
 
 fun test_2() {

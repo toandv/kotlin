@@ -16,5 +16,5 @@ fun foo(s: Sealed, nf: Sealed.NonFirst): Int {
         Sealed.NonFirst.Second -> 2
         Sealed.NonFirst.Third -> 3
     }
-    return si <!UNRESOLVED_REFERENCE!>+<!> nfi
+    return si <!INAPPLICABLE_CANDIDATE!>+<!> nfi
 }

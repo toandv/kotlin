@@ -11,7 +11,7 @@ FILE: first.kt
 
         public final fun baz(): R|kotlin/Unit| {
             this@R|/Private|.R|/Private.bar|()
-            this@R|/Private|.R|/Private.Nested.Nested|()
+            R|/Private.Nested.Nested|()
             R|/Private.Companion.fromCompanion|()
             Q|Private.NotCompanion|.<Inapplicable(HIDDEN): [/Private.NotCompanion.foo]>#()
         }

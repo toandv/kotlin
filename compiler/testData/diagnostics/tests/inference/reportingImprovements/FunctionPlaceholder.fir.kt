@@ -11,7 +11,7 @@ fun test() {
     <!INAPPLICABLE_CANDIDATE!>foo<!> { x -> x}
     <!INAPPLICABLE_CANDIDATE!>foo<!> { x: Int -> x}
 
-    bar { it <!UNRESOLVED_REFERENCE!>+<!> 1 }
-    bar { x -> x <!UNRESOLVED_REFERENCE!>+<!> 1}
+    bar { it <!INAPPLICABLE_CANDIDATE!>+<!> 1 }
+    bar { x -> x <!INAPPLICABLE_CANDIDATE!>+<!> 1}
     bar { x: Int -> x + 1}
 }

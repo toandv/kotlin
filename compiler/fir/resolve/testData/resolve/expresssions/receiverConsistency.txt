@@ -18,7 +18,7 @@ FILE: receiverConsistency.kt
             }
 
             public final fun test(): R|kotlin/Unit| {
-                R|/C.err|()
+                this@R|/C|.R|/C.err|()
             }
 
         }

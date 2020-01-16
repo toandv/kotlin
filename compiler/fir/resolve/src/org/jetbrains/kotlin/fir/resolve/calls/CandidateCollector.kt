@@ -25,6 +25,9 @@ open class CandidateCollector(
     var currentApplicability = CandidateApplicability.HIDDEN
         private set
 
+    var currentGroup = 0
+        private set
+
     fun newDataSet() {
         groupNumbers.clear()
         candidates.clear()
@@ -38,6 +41,7 @@ open class CandidateCollector(
             groupNumbers.clear()
             candidates.clear()
             currentApplicability = applicability
+            currentGroup = group
         }
 
         if (applicability == currentApplicability) {

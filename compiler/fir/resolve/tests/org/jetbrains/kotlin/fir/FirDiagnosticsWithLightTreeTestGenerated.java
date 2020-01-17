@@ -704,6 +704,11 @@ public class FirDiagnosticsWithLightTreeTestGenerated extends AbstractFirDiagnos
                 runTest("compiler/fir/resolve/testData/resolve/expresssions/invoke/extension.kt");
             }
 
+            @TestMetadata("extensionOnObject.kt")
+            public void testExtensionOnObject() throws Exception {
+                runTest("compiler/fir/resolve/testData/resolve/expresssions/invoke/extensionOnObject.kt");
+            }
+
             @TestMetadata("farInvokeExtension.kt")
             public void testFarInvokeExtension() throws Exception {
                 runTest("compiler/fir/resolve/testData/resolve/expresssions/invoke/farInvokeExtension.kt");

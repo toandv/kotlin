@@ -477,15 +477,23 @@ class FirTowerResolver(
 
         fun TowerScopeLevel.handleLevel(): LevelHandler {
             val candidateFactory = CandidateFactory(components, info)
-            val explicitReceiverKind = if (receiverValue == null || receiverValue is QualifierReceiver) {
-                ExplicitReceiverKind.NO_EXPLICIT_RECEIVER
-            } else if (
-                this is MemberScopeTowerLevel &&
-                this.dispatchReceiver is AbstractExplicitReceiver<*>
-            ) {
-                ExplicitReceiverKind.DISPATCH_RECEIVER
-            } else {
-                ExplicitReceiverKind.EXTENSION_RECEIVER
+            val explicitReceiverKind = when {
+                receiverValue == null -> {
+                    ExplicitReceiverKind.NO_EXPLICIT_RECEIVER
+                }
+                receiverValue is QualifierReceiver -> {
+                    if (this is MemberScopeTowerLevel) {
+                        ExplicitReceiverKind.NO_EXPLICIT_RECEIVER
+                    } else {
+                        ExplicitReceiverKind.EXTENSION_RECEIVER
+                    }
+                }
+                this is MemberScopeTowerLevel && dispatchReceiver is AbstractExplicitReceiver<*> -> {
+                    ExplicitReceiverKind.DISPATCH_RECEIVER
+                }
+                else -> {
+                    ExplicitReceiverKind.EXTENSION_RECEIVER
+                }
             }
 //            val implicitExtensionInvokeMode = (this as? MemberScopeTowerLevel)?.implicitExtensionInvokeMode == true
             val processor =

@@ -554,6 +554,11 @@ public class FirDiagnosticsWithLightTreeTestGenerated extends AbstractFirDiagnos
             runTest("compiler/fir/resolve/testData/resolve/expresssions/memberExtension.kt");
         }
 
+        @TestMetadata("nestedObjects.kt")
+        public void testNestedObjects() throws Exception {
+            runTest("compiler/fir/resolve/testData/resolve/expresssions/nestedObjects.kt");
+        }
+
         @TestMetadata("nestedVisibility.kt")
         public void testNestedVisibility() throws Exception {
             runTest("compiler/fir/resolve/testData/resolve/expresssions/nestedVisibility.kt");

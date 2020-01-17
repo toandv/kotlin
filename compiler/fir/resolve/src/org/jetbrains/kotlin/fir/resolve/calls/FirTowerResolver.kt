@@ -515,7 +515,9 @@ class FirTowerResolver(
             when (info.callKind) {
                 CallKind.VariableAccess -> {
                     processElementsByName(TowerScopeLevel.Token.Properties, info.name, receiverValue, processor)
-                    processElementsByName(TowerScopeLevel.Token.Objects, info.name, receiverValue, processor2)
+                    if (this is MemberScopeTowerLevel || receiverValue == null) {
+                        processElementsByName(TowerScopeLevel.Token.Objects, info.name, receiverValue, processor2)
+                    }
                 }
                 CallKind.Function -> {
                     processElementsByName(TowerScopeLevel.Token.Functions, info.name, receiverValue, processor)

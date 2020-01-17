@@ -9,10 +9,7 @@ import org.jetbrains.kotlin.backend.common.lower.InitializersLoweringBase
 import org.jetbrains.kotlin.backend.jvm.JvmBackendContext
 import org.jetbrains.kotlin.backend.jvm.JvmLoweredDeclarationOrigin
 import org.jetbrains.kotlin.ir.builders.declarations.addFunction
-import org.jetbrains.kotlin.ir.declarations.IrAnonymousInitializer
-import org.jetbrains.kotlin.ir.declarations.IrClass
-import org.jetbrains.kotlin.ir.declarations.IrDeclarationOrigin
-import org.jetbrains.kotlin.ir.declarations.IrField
+import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.expressions.IrSetField
 import org.jetbrains.kotlin.ir.expressions.impl.IrBlockBodyImpl
 import org.jetbrains.kotlin.ir.util.patchDeclarationParents
@@ -23,7 +20,9 @@ class StaticInitializersLowering(override val context: JvmBackendContext) : Init
         val staticInitializerStatements = extractInitializers(irClass) {
             // JVM implementations are required to generate initializers for all static fields with ConstantValue,
             // so don't add any to <clinit>.
-            (it is IrField && it.isStatic && it.constantValue(context) == null) || (it is IrAnonymousInitializer && it.isStatic)
+            (it is IrField && it.isProperStaticField) ||
+                    (it is IrProperty && it.backingField?.isProperStaticField == true) ||
+                    (it is IrAnonymousInitializer && it.isStatic)
         }.toMutableList()
         if (staticInitializerStatements.isNotEmpty()) {
             staticInitializerStatements.sortBy {
@@ -46,6 +45,9 @@ class StaticInitializersLowering(override val context: JvmBackendContext) : Init
             }
         }
     }
+
+    private val IrField.isProperStaticField: Boolean
+        get() = isStatic && constantValue(context) == null
 
     companion object {
         val clinitName = Name.special("<clinit>")

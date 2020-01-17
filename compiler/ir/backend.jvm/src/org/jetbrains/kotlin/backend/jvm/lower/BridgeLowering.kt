@@ -62,7 +62,7 @@ private class BridgeLowering(val context: JvmBackendContext) : ClassLoweringPass
             return
         }
 
-        for (member in irClass.declarations.filterIsInstance<IrSimpleFunction>()) {
+        for (member in irClass.simpleFunctions()) {
             if (!irClass.isInterface || member.hasJvmDefault())
                 createBridges(member)
         }

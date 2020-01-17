@@ -8,6 +8,7 @@ package org.jetbrains.kotlin.backend.jvm.lower
 import org.jetbrains.kotlin.backend.common.FileLoweringPass
 import org.jetbrains.kotlin.backend.common.ir.createImplicitParameterDeclarationWithWrappedDescriptor
 import org.jetbrains.kotlin.backend.common.ir.passTypeArgumentsFrom
+import org.jetbrains.kotlin.backend.common.ir.simpleFunctions
 import org.jetbrains.kotlin.backend.common.lower
 import org.jetbrains.kotlin.backend.common.lower.createIrBuilder
 import org.jetbrains.kotlin.backend.common.phaser.PhaseConfig
@@ -140,14 +141,12 @@ private fun generateMultifileFacades(
         for (partClass in partClasses) {
             context.multifileFacadeForPart[partClass.attributeOwnerId as IrClass] = jvmClassName
 
-            moveFieldsOfConstProperties(partClass, facadeClass)
+            moveConstProperties(partClass, facadeClass)
 
-            for (member in partClass.declarations) {
-                if (member is IrSimpleFunction) {
-                    val newMember = member.createMultifileDelegateIfNeeded(context, facadeClass, shouldGeneratePartHierarchy)
-                    if (newMember != null) {
-                        functionDelegates[member] = newMember
-                    }
+            for (member in partClass.simpleFunctions()) {
+                val newMember = member.createMultifileDelegateIfNeeded(context, facadeClass, shouldGeneratePartHierarchy)
+                if (newMember != null) {
+                    functionDelegates[member] = newMember
                 }
             }
         }
@@ -180,9 +179,9 @@ private fun modifyMultifilePartsForHierarchy(context: JvmBackendContext, unsorte
     return parts.last()
 }
 
-private fun moveFieldsOfConstProperties(partClass: IrClass, facadeClass: IrClass) {
+private fun moveConstProperties(partClass: IrClass, facadeClass: IrClass) {
     partClass.declarations.transformFlat { member ->
-        if (member is IrField && member.shouldMoveToFacade()) {
+        if (member is IrProperty && member.shouldMoveToFacade()) {
             member.patchDeclarationParents(facadeClass)
             facadeClass.declarations.add(member)
             emptyList()
@@ -190,10 +189,8 @@ private fun moveFieldsOfConstProperties(partClass: IrClass, facadeClass: IrClass
     }
 }
 
-private fun IrField.shouldMoveToFacade(): Boolean {
-    val property = correspondingPropertySymbol?.owner
-    return property != null && property.isConst && !Visibilities.isPrivate(visibility)
-}
+private fun IrProperty.shouldMoveToFacade(): Boolean =
+    isConst && !Visibilities.isPrivate(visibility)
 
 private fun IrSimpleFunction.createMultifileDelegateIfNeeded(
     context: JvmBackendContext,

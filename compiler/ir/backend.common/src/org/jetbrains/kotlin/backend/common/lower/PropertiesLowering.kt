@@ -118,6 +118,81 @@ class PropertiesLowering(
     }
 }
 
+class PropertiesLowering2(
+    private val context: BackendContext,
+    private val originOfSyntheticMethodForAnnotations: IrDeclarationOrigin? = null,
+    private val skipExternalProperties: Boolean = false,
+    private val computeSyntheticMethodName: ((IrProperty) -> String)? = null
+) : IrElementTransformerVoid(), FileLoweringPass {
+    override fun lower(irFile: IrFile) {
+        irFile.accept(this, null)
+    }
+
+    override fun visitFile(declaration: IrFile): IrFile {
+        declaration.transformChildrenVoid(this)
+        declaration.transformDeclarationsFlat { lowerProperty(it, ClassKind.CLASS) }
+        return declaration
+    }
+
+    override fun visitClass(declaration: IrClass): IrStatement {
+        declaration.transformChildrenVoid(this)
+        declaration.transformDeclarationsFlat { lowerProperty(it, declaration.kind) }
+        return declaration
+    }
+
+    override fun visitScript(declaration: IrScript): IrStatement {
+        declaration.transformChildrenVoid(this)
+        declaration.transformDeclarationsFlat { lowerProperty(it, ClassKind.CLASS) }
+        return declaration
+    }
+
+    private fun lowerProperty(declaration: IrDeclaration, kind: ClassKind): List<IrDeclaration>? =
+        if (declaration is IrProperty)
+            if (skipExternalProperties && declaration.isEffectivelyExternal()) listOf(declaration) else {
+                ArrayList<IrDeclaration>(4).apply {
+                    // JvmFields in a companion object refer to companion's owners and should not be generated within companion.
+                    if (kind != ClassKind.ANNOTATION_CLASS && declaration.backingField?.parent != declaration.parent) {
+                        declaration.backingField = null
+                    }
+
+                    add(declaration)
+
+                    if (declaration.annotations.isNotEmpty() && originOfSyntheticMethodForAnnotations != null
+                        && computeSyntheticMethodName != null
+                    ) {
+                        val methodName = computeSyntheticMethodName.invoke(declaration) // Workaround KT-4113
+                        add(createSyntheticMethodForAnnotations(declaration, originOfSyntheticMethodForAnnotations, methodName))
+                    }
+                }
+            }
+        else
+            null
+
+    private fun createSyntheticMethodForAnnotations(declaration: IrProperty, origin: IrDeclarationOrigin, name: String): IrFunctionImpl {
+        val descriptor = WrappedSimpleFunctionDescriptor(declaration.descriptor.annotations)
+        val symbol = IrSimpleFunctionSymbolImpl(descriptor)
+        return IrFunctionImpl(
+            UNDEFINED_OFFSET, UNDEFINED_OFFSET, origin, symbol, Name.identifier(name),
+            declaration.visibility, Modality.OPEN, context.irBuiltIns.unitType,
+            isInline = false, isExternal = false, isTailrec = false, isSuspend = false, isExpect = false, isFakeOverride = false,
+            isOperator = false
+        ).apply {
+            descriptor.bind(this)
+
+            val extensionReceiver = declaration.getter?.extensionReceiverParameter
+            if (extensionReceiver != null) {
+                // Use raw type of extension receiver to avoid generic signature, which would be useless for this method.
+                extensionReceiverParameter = extensionReceiver.copyTo(this, type = extensionReceiver.type.classifierOrFail.typeWith())
+            }
+
+            body = IrBlockBodyImpl(UNDEFINED_OFFSET, UNDEFINED_OFFSET)
+
+            annotations.addAll(declaration.annotations)
+            metadata = declaration.metadata
+        }
+    }
+}
+
 class LocalDelegatedPropertiesLowering : IrElementTransformerVoid(), FileLoweringPass {
     override fun lower(irFile: IrFile) {
         irFile.accept(this, null)

@@ -24,10 +24,7 @@ import org.jetbrains.kotlin.ir.builders.irBlockBody
 import org.jetbrains.kotlin.ir.builders.irCall
 import org.jetbrains.kotlin.ir.builders.irGet
 import org.jetbrains.kotlin.ir.builders.irReturn
-import org.jetbrains.kotlin.ir.declarations.IrClass
-import org.jetbrains.kotlin.ir.declarations.IrDeclarationOrigin
-import org.jetbrains.kotlin.ir.declarations.IrFile
-import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
+import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.expressions.IrCall
 import org.jetbrains.kotlin.ir.expressions.IrExpression
 import org.jetbrains.kotlin.ir.util.*
@@ -58,8 +55,13 @@ private class InheritedDefaultMethodsOnClassesLowering(val context: JvmBackendCo
 
     private fun generateInterfaceMethods(irClass: IrClass) {
         irClass.declarations.transform { declaration ->
-            (declaration as? IrSimpleFunction)?.getTargetForRedirection()?.let { implementation ->
-                generateDelegationToDefaultImpl(implementation, declaration)
+            when (declaration) {
+                is IrSimpleFunction -> generateDelegationToDefaultImpl(declaration)
+                is IrProperty -> declaration.also {
+                    declaration.getter = declaration.getter?.let(this::generateDelegationToDefaultImpl) ?: declaration.getter
+                    declaration.setter = declaration.setter?.let(this::generateDelegationToDefaultImpl) ?: declaration.setter
+                }
+                else -> null
             } ?: declaration
         }
     }
@@ -99,11 +101,9 @@ private class InheritedDefaultMethodsOnClassesLowering(val context: JvmBackendCo
         return implementation
     }
 
-    private fun generateDelegationToDefaultImpl(
-        interfaceImplementation: IrSimpleFunction,
-        classOverride: IrSimpleFunction
-    ): IrSimpleFunction {
-        val irFunction = context.declarationFactory.getDefaultImplsRedirection(classOverride)
+    private fun generateDelegationToDefaultImpl(fakeOverride: IrSimpleFunction): IrSimpleFunction? {
+        val interfaceImplementation = fakeOverride.getTargetForRedirection() ?: return null
+        val irFunction = context.declarationFactory.getDefaultImplsRedirection(fakeOverride)
 
         val defaultImplFun = context.declarationFactory.getDefaultImplsFunction(interfaceImplementation)
         context.createIrBuilder(irFunction.symbol, UNDEFINED_OFFSET, UNDEFINED_OFFSET).apply {

@@ -5,6 +5,7 @@
 
 package org.jetbrains.kotlin.backend.jvm.codegen
 
+import org.jetbrains.kotlin.backend.common.ir.simpleFunctions
 import org.jetbrains.kotlin.backend.jvm.JvmBackendContext
 import org.jetbrains.kotlin.backend.jvm.JvmLoweredDeclarationOrigin
 import org.jetbrains.kotlin.backend.jvm.lower.MultifileFacadeFileEntry
@@ -18,6 +19,7 @@ import org.jetbrains.kotlin.codegen.inline.ReifiedTypeParametersUsages
 import org.jetbrains.kotlin.codegen.inline.SourceMapper
 import org.jetbrains.kotlin.codegen.serialization.JvmSerializationBindings
 import org.jetbrains.kotlin.codegen.serialization.JvmSerializerExtension
+import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.descriptors.Visibility
 import org.jetbrains.kotlin.ir.builders.declarations.buildFun
@@ -140,10 +142,19 @@ open class ClassCodegen protected constructor(
             visitor.visitSource(shortName, null)
         }
 
+        for (declaration in irClass.properties.mapNotNull(IrProperty::backingField) + irClass.fields) {
+            if (irClass.kind != ClassKind.ANNOTATION_CLASS || declaration.isStatic) {
+                generateDeclaration(declaration)
+            }
+        }
+        for (declaration in irClass.constructors) {
+            generateDeclaration(declaration)
+        }
+
         // Delay generation of <clinit> until the end because inline function calls
         // might need to generate the `$assertionsDisabled` field initializer.
         classInitializer = irClass.functions.singleOrNull { it.name.asString() == "<clinit>" }
-        for (declaration in irClass.declarations) {
+        for (declaration in irClass.simpleFunctions()) {
             if (declaration != classInitializer)
                 generateDeclaration(declaration)
         }

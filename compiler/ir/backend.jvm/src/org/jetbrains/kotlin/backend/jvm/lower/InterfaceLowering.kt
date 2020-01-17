@@ -9,6 +9,7 @@ import org.jetbrains.kotlin.backend.common.ClassLoweringPass
 import org.jetbrains.kotlin.backend.common.ir.isMethodOfAny
 import org.jetbrains.kotlin.backend.common.ir.moveBodyTo
 import org.jetbrains.kotlin.backend.common.ir.passTypeArgumentsFrom
+import org.jetbrains.kotlin.backend.common.ir.simpleFunctions
 import org.jetbrains.kotlin.backend.jvm.JvmBackendContext
 import org.jetbrains.kotlin.backend.jvm.JvmLoweredDeclarationOrigin
 import org.jetbrains.kotlin.backend.jvm.codegen.isJvmInterface
@@ -50,6 +51,12 @@ internal class InterfaceLowering(val context: JvmBackendContext) : IrElementTran
         irClass.declarations.removeAll {
             it is IrFunction && removedFunctions.containsKey(it.symbol)
         }
+        for (property in irClass.properties) {
+            if (property.getter != null && property.getter!!.symbol in removedFunctions)
+                property.getter = null
+            if (property.setter != null && property.setter!!.symbol in removedFunctions)
+                property.setter = null
+        }
 
         val defaultImplsIrClass = context.declarationFactory.getDefaultImplsClass(irClass)
         if (defaultImplsIrClass.declarations.isNotEmpty()) {
@@ -62,7 +69,7 @@ internal class InterfaceLowering(val context: JvmBackendContext) : IrElementTran
 
     private fun handleInterface(irClass: IrClass) {
         // There are 6 cases for functions on interfaces:
-        loop@ for (function in irClass.functions) {
+        loop@ for (function in irClass.simpleFunctions()) {
             when {
                 /**
                  * 1) They are plain abstract interface functions, in which case we leave them:

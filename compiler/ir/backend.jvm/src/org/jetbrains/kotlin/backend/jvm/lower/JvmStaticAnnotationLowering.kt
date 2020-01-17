@@ -60,32 +60,21 @@ private class CompanionObjectJvmStaticLowering(val context: JvmBackendContext) :
     override fun lower(irClass: IrClass) {
         val companion = irClass.declarations.find {
             it is IrClass && it.isCompanion
-        } as IrClass?
+        } as IrClass? ?: return
 
-        companion?.declarations?.filter(::isJvmStaticFunction)?.forEach {
-            val jvmStaticFunction = it as IrSimpleFunction
-            val newName = Name.identifier(context.methodSignatureMapper.mapFunctionName(jvmStaticFunction))
-            if (!jvmStaticFunction.visibility.isPublicAPI) {
+        for (function in companion.simpleFunctions()) {
+            if (!isJvmStaticFunction(function)) continue
+
+            val newName = Name.identifier(context.methodSignatureMapper.mapFunctionName(function))
+            if (!function.visibility.isPublicAPI) {
                 // TODO: Synthetic accessor creation logic should be supported in SyntheticAccessorLowering in the future.
                 val accessorName = Name.identifier("access\$$newName")
-                val accessor = createProxy(
-                    jvmStaticFunction, companion, companion, accessorName, Visibilities.PUBLIC,
-                    isSynthetic = true
-                )
+                val accessor = createProxy(function, companion, companion, accessorName, Visibilities.PUBLIC, isSynthetic = true)
                 companion.addMember(accessor)
-                val proxy = createProxy(
-                    accessor, irClass, companion, newName, jvmStaticFunction.visibility, isSynthetic = false
-                )
-                irClass.addMember(proxy)
-            } else {
-                val proxy = createProxy(
-                    jvmStaticFunction, irClass, companion, newName, jvmStaticFunction.visibility,
-                    isSynthetic = false
-                )
-                irClass.addMember(proxy)
             }
+            val proxy = createProxy(function, irClass, companion, newName, function.visibility, isSynthetic = false)
+            irClass.addMember(proxy)
         }
-
     }
 
     private fun createProxy(
@@ -171,12 +160,13 @@ private class SingletonObjectJvmStaticLowering(
     override fun lower(irClass: IrClass) {
         if (!irClass.isObject || irClass.isCompanion) return
 
-        irClass.declarations.filter(::isJvmStaticFunction).forEach {
-            val jvmStaticFunction = it as IrSimpleFunction
+        for (function in irClass.simpleFunctions()) {
+            if (!isJvmStaticFunction(function)) continue
+
             // dispatch receiver parameter is already null for synthetic property annotation methods
-            jvmStaticFunction.dispatchReceiverParameter?.let { oldDispatchReceiverParameter ->
-                jvmStaticFunction.dispatchReceiverParameter = null
-                modifyBody(jvmStaticFunction, irClass, oldDispatchReceiverParameter)
+            function.dispatchReceiverParameter?.let { oldDispatchReceiverParameter ->
+                function.dispatchReceiverParameter = null
+                modifyBody(function, irClass, oldDispatchReceiverParameter)
             }
         }
     }
@@ -188,7 +178,7 @@ private class SingletonObjectJvmStaticLowering(
 
 private fun IrFunction.isJvmStaticInSingleton(): Boolean {
     val parentClass = parent as? IrClass ?: return false
-    return isJvmStaticFunction(this) && parentClass.isObject && !parentClass.isCompanion
+    return this is IrSimpleFunction && isJvmStaticFunction(this) && parentClass.isObject && !parentClass.isCompanion
 }
 
 private class MakeCallsStatic(
@@ -248,8 +238,6 @@ private class MakeCallsStatic(
     }
 }
 
-private fun isJvmStaticFunction(declaration: IrDeclaration): Boolean =
-    declaration is IrSimpleFunction &&
-            (declaration.hasAnnotation(JVM_STATIC_ANNOTATION_FQ_NAME) ||
-                    declaration.correspondingPropertySymbol?.owner?.hasAnnotation(JVM_STATIC_ANNOTATION_FQ_NAME) == true)
-
+private fun isJvmStaticFunction(declaration: IrSimpleFunction): Boolean =
+    (declaration.hasAnnotation(JVM_STATIC_ANNOTATION_FQ_NAME) ||
+            declaration.correspondingPropertySymbol?.owner?.hasAnnotation(JVM_STATIC_ANNOTATION_FQ_NAME) == true)

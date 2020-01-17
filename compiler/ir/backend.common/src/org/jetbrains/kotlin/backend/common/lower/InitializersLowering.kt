@@ -8,6 +8,7 @@ package org.jetbrains.kotlin.backend.common.lower
 import org.jetbrains.kotlin.backend.common.ClassLoweringPass
 import org.jetbrains.kotlin.backend.common.CommonBackendContext
 import org.jetbrains.kotlin.backend.common.IrElementTransformerVoidWithContext
+import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.ir.IrStatement
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.expressions.IrExpression
@@ -24,7 +25,9 @@ object SYNTHESIZED_INIT_BLOCK : IrStatementOriginImpl("SYNTHESIZED_INIT_BLOCK")
 open class InitializersLowering(context: CommonBackendContext) : InitializersLoweringBase(context) {
     override fun lower(irClass: IrClass) {
         val instanceInitializerStatements = extractInitializers(irClass) {
-            (it is IrField && !it.isStatic) || (it is IrAnonymousInitializer && !it.isStatic)
+            (it is IrField && it.isProperNonStaticField) ||
+                    (it is IrProperty && it.backingField?.isProperNonStaticField == true) ||
+                    (it is IrAnonymousInitializer && !it.isStatic)
         }
         irClass.transformChildrenVoid(object : IrElementTransformerVoidWithContext() {
             // Only transform constructors of current class.
@@ -37,6 +40,10 @@ open class InitializersLowering(context: CommonBackendContext) : InitializersLow
                     .deepCopyWithSymbols(currentScope!!.scope.getLocalDeclarationParent())
         })
     }
+
+    // TODO: invent some other place to store annotation property default values
+    private val IrField.isProperNonStaticField: Boolean
+        get() = !isStatic && (parent as? IrClass)?.kind != ClassKind.ANNOTATION_CLASS
 }
 
 abstract class InitializersLoweringBase(open val context: CommonBackendContext) : ClassLoweringPass {
@@ -45,6 +52,7 @@ abstract class InitializersLoweringBase(open val context: CommonBackendContext) 
             when (it) {
                 is IrField -> handleField(irClass, it)
                 is IrAnonymousInitializer -> handleAnonymousInitializer(it)
+                is IrProperty -> handleField(irClass, it.backingField!!)
                 else -> null
             }
         }.also {

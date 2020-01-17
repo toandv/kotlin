@@ -68,20 +68,32 @@ private class JvmInlineClassLowering(private val context: JvmBackendContext) : F
         }
 
         declaration.transformDeclarationsFlat { memberDeclaration ->
-            if (memberDeclaration is IrFunction) {
-                transformFunctionFlat(memberDeclaration)
-            } else {
-                memberDeclaration.accept(this, null)
-                null
+            when (memberDeclaration) {
+                is IrFunction -> transformFunctionFlat(memberDeclaration)
+                is IrProperty -> with(memberDeclaration) {
+                    backingField?.accept(this@JvmInlineClassLowering, null)
+                    listOf(this) +
+                            getter?.let(::transformFunctionFlat)?.also { getter = null }.orEmpty() +
+                            setter?.let(::transformFunctionFlat)?.also { setter = null }.orEmpty()
+                }
+                else -> {
+                    memberDeclaration.accept(this, null)
+                    null
+                }
             }
         }
 
         if (declaration.isInline) {
-            val irConstructor = declaration.primaryConstructor!!
-            // The field getter is used by reflection and cannot be removed here unless it is internal.
-            declaration.declarations.removeIf {
-                it == irConstructor || (it is IrFunction && it.isInlineClassFieldGetter && !it.visibility.isPublicAPI)
+            for (property in declaration.declarations) {
+                val getter = (property as? IrProperty)?.getter ?: continue
+                // The field getter is used by reflection and cannot be removed here unless it is internal.
+                if (getter.isInlineClassFieldGetter && !getter.visibility.isPublicAPI) {
+                    property.getter = null
+                }
             }
+
+            val irConstructor = declaration.primaryConstructor!!
+            declaration.declarations.remove(irConstructor)
             buildPrimaryInlineClassConstructor(declaration, irConstructor)
             buildBoxFunction(declaration)
             buildUnboxFunction(declaration)

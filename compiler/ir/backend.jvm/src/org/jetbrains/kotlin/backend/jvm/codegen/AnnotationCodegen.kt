@@ -190,6 +190,7 @@ class AnnotationCodegen(
     private fun getAnnotationArgumentJvmName(annotationClass: IrClass?, parameterName: Name): String {
         if (annotationClass == null) return parameterName.asString()
 
+        // TODO: ???
         val propertyOrGetter = annotationClass.declarations.singleOrNull {
             // IrSimpleFunction if lowered, IrProperty with a getter if imported
             (it is IrSimpleFunction && it.correspondingPropertySymbol?.owner?.name == parameterName) ||

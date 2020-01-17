@@ -70,7 +70,8 @@ internal abstract class KonanCliRunner(
     val toolName: String,
     val fullName: String,
     val project: Project,
-    private val additionalJvmArgs: List<String>
+    private val additionalJvmArgs: List<String>,
+    private val canRunInDaemon: Boolean
 ) : KonanToolRunner {
     override val mainClass = "org.jetbrains.kotlin.cli.utilities.MainKt"
 
@@ -134,7 +135,7 @@ internal abstract class KonanCliRunner(
             )
         }
 
-        if (project.disableKonanDaemon || toolName == "cinterop") {
+        if (project.disableKonanDaemon || !canRunInDaemon) {
             project.javaexec { spec ->
                 spec.main = mainClass
                 spec.classpath = classpath
@@ -193,7 +194,7 @@ internal abstract class KonanCliRunner(
 private val konanCompilerClassLoadersMap = ConcurrentHashMap<String, ClassLoader>()
 
 internal class KonanInteropRunner(project: Project, additionalJvmArgs: List<String> = emptyList()) :
-    KonanCliRunner("cinterop", "Kotlin/Native cinterop tool", project, additionalJvmArgs) {
+    KonanCliRunner("cinterop", "Kotlin/Native cinterop tool", project, additionalJvmArgs, canRunInDaemon = false) {
     init {
         if (HostManager.host == KonanTarget.MINGW_X64) {
             // TODO: Read it from Platform properties when it is accessible.
@@ -217,7 +218,7 @@ internal class KonanCompilerRunner(
     project: Project,
     additionalJvmArgs: List<String> = emptyList(),
     val useArgFile: Boolean = true
-) : KonanCliRunner("konanc", "Kotlin/Native compiler", project, additionalJvmArgs) {
+) : KonanCliRunner("konanc", "Kotlin/Native compiler", project, additionalJvmArgs, canRunInDaemon = true) {
     override fun transformArgs(args: List<String>): List<String> {
         if (!useArgFile) {
             return args
@@ -237,7 +238,13 @@ internal class KonanCompilerRunner(
 }
 
 internal class KonanKlibRunner(project: Project, additionalJvmArgs: List<String> = emptyList()) :
-    KonanCliRunner("klib", "Klib management tool", project, additionalJvmArgs)
+    KonanCliRunner("klib", "Klib management tool", project, additionalJvmArgs, canRunInDaemon = true)
 
 internal class KonanLibraryGenerationRunner(project: Project, additionalJvmArgs: List<String> = emptyList()) :
-    KonanCliRunner("generatePlatformLibraries", "Platform libraries generator", project, additionalJvmArgs)
+    KonanCliRunner(
+        "generatePlatformLibraries",
+        "Platform libraries generator",
+        project,
+        additionalJvmArgs,
+        canRunInDaemon = false // Library generator starts the interop tool which cannot be executed in daemon.
+    )

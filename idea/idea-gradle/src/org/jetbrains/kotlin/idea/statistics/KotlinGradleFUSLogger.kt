@@ -5,16 +5,12 @@
 
 package org.jetbrains.kotlin.idea.statistics
 
-import org.jetbrains.kotlin.statistics.metrics.StringMetrics
+import com.intellij.util.concurrency.AppExecutorUtil
 
 class KotlinGradleFUSLogger(val todoGradleHomeDir: String) {
-/*
+
     fun main() {
         AppExecutorUtil.getAppScheduledExecutorService().scheduleWithFixedDelay
     }
-*/
 
-    fun doSmth() {
-        println(StringMetrics.GRADLE_VERSION)
-    }
 }

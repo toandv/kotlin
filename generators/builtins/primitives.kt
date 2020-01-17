@@ -16,7 +16,6 @@ class GeneratePrimitives(out: PrintWriter) : BuiltInsSourceGenerator(out) {
             "minus" to "Subtracts the other value from this value.",
             "times" to "Multiplies this value by the other value.",
             "div" to "Divides this value by the other value.",
-            "mod" to "Calculates the remainder of dividing this value by the other value.",
             "rem" to "Calculates the remainder of dividing this value by the other value."
         )
         internal val unaryOperators: Map<String, String> = mapOf(
@@ -172,9 +171,6 @@ class GeneratePrimitives(out: PrintWriter) : BuiltInsSourceGenerator(out) {
             when (name) {
                 "rem" ->
                     out.println("    @SinceKotlin(\"1.1\")")
-
-                "mod" ->
-                    out.println("    @Deprecated(\"Use rem(other) instead\", ReplaceWith(\"rem(other)\"), DeprecationLevel.ERROR)")
             }
             out.println("    public operator fun $name(other: ${otherKind.capitalized}): ${returnType.capitalized}")
         }

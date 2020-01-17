@@ -124,9 +124,7 @@ class UnsignedTypeGenerator(val type: UnsignedType, out: PrintWriter) : BuiltIns
 
     private fun generateBinaryOperators() {
         for ((name, doc) in GeneratePrimitives.binaryOperators) {
-            if (name != "mod") {
-                generateOperator(name, doc)
-            }
+            generateOperator(name, doc)
         }
     }
 

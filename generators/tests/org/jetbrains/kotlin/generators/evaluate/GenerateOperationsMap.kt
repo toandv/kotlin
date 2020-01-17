@@ -28,7 +28,7 @@ import org.jetbrains.kotlin.utils.Printer
 import java.io.File
 
 val DEST_FILE: File = File("compiler/frontend/src/org/jetbrains/kotlin/resolve/constants/evaluate/OperationsMapGenerated.kt")
-private val EXCLUDED_FUNCTIONS = listOf("rangeTo", "hashCode", "inc", "dec", "subSequence")
+private val EXCLUDED_FUNCTIONS = listOf("rangeTo", "hashCode", "inc", "dec", "mod", "subSequence")
 
 fun main(args: Array<String>) {
     GeneratorsFileUtil.writeFileIfContentChanged(DEST_FILE, generate())
@@ -146,7 +146,6 @@ fun renderCheckBinaryOperation(name: String, params: List<KotlinType>): String {
         "minus" -> "{ a, b -> a.subtract(b) }"
         "div" -> "{ a, b -> a.divide(b) }"
         "times" -> "{ a, b -> a.multiply(b) }"
-        "mod",
         "rem",
         "xor",
         "or",

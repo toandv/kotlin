@@ -16,6 +16,8 @@ class BuildSessionLogger(rootPath: File) : IStatisticsValuesConsumer {
 
     companion object {
         const val STATISTICS_FOLDER_NAME = "kotlin-profile"
+        const val STATISTICS_FILE_NAME_PATTERN = "\\d[4]-\\d[2]-\\d[2]-\\d[2]-\\d[2]-\\d[3].profile"
+
         val MAX_PROFILE_FILES = 1_000
         val MAX_PROFILE_FILE_SIZE = 100_000L
     }

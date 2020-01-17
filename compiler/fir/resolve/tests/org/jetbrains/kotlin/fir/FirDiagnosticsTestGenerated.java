@@ -753,6 +753,11 @@ public class FirDiagnosticsTestGenerated extends AbstractFirDiagnosticsTest {
             public void testThreeReceivers() throws Exception {
                 runTest("compiler/fir/resolve/testData/resolve/expresssions/invoke/threeReceivers.kt");
             }
+
+            @TestMetadata("threeReceiversCorrect.kt")
+            public void testThreeReceiversCorrect() throws Exception {
+                runTest("compiler/fir/resolve/testData/resolve/expresssions/invoke/threeReceiversCorrect.kt");
+            }
         }
 
         @TestMetadata("compiler/fir/resolve/testData/resolve/expresssions/operators")

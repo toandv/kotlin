@@ -19,11 +19,15 @@ class KotlinDslScriptModelProvider : ProjectImportExtraModelProvider {
         project: IdeaProject,
         consumer: ProjectImportExtraModelProvider.BuildModelConsumer
     ) {
-        project.modules.forEach { module ->
-            if (module.gradleProject.parent == null) {
-                val model = controller.findModel(module.gradleProject, kotlinDslScriptModelClass)
-                if (model != null) {
-                    consumer.consume(module, model, kotlinDslScriptModelClass)
+        project.modules.forEach {
+            if (it.gradleProject.parent == null) {
+                try {
+                    val model = controller.findModel(it.gradleProject, kotlinDslScriptModelClass)
+                    if (model != null) {
+                        consumer.consumeProjectModel(it, model, kotlinDslScriptModelClass)
+                    }
+                } catch (e: Throwable) {
+                    consumer.consumeProjectModel(it, BrokenKotlinDslScriptsModel(e), kotlinDslScriptModelClass)
                 }
             }
         }

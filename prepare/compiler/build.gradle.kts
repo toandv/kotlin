@@ -73,6 +73,7 @@ val distLibraryProjects = listOfNotNull(
     ":kotlin-annotations-android",
     ":kotlin-annotations-jvm",
     ":kotlin-ant",
+    ":kotlin-coroutines-experimental-compat",
     ":kotlin-daemon",
     ":kotlin-daemon-client",
     ":kotlin-daemon-client-new",
@@ -109,6 +110,7 @@ val distCompilerPluginProjects = listOf(
 
 val distSourcesProjects = listOfNotNull(
     ":kotlin-annotations-jvm",
+    ":kotlin-coroutines-experimental-compat",
     ":kotlin-script-runtime",
     ":kotlin-stdlib-js-ir".takeIf { kotlinBuildProperties.jsIrDist },
     ":kotlin-test:kotlin-test-js".takeIf { !kotlinBuildProperties.isInJpsBuildIdeaSync },

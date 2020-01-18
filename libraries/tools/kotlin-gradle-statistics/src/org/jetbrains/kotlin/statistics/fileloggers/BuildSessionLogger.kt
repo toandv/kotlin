@@ -86,6 +86,8 @@ class BuildSessionLogger(rootPath: File) : IStatisticsValuesConsumer {
 
     @Synchronized
     fun finishBuildSession(action: String?, failure: Throwable?) {
+        // nanotime could not be used as build start time in nanotime is unknown. As result, the measured duration
+        // could be affected by system clock correction
         val finishTime = System.currentTimeMillis()
         buildSession?.also {
             if (it.buildStartedTime != null) {

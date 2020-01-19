@@ -11,8 +11,28 @@ import org.jetbrains.kotlin.statistics.metrics.NumberOverridePolicy.*
 
 enum class NumericalMetrics(val type: NumberOverridePolicy, val anonymization: NumberAnonymizationPolicy, val perProject: Boolean = false) {
 
+
+    // User environment
     // Number of CPU cores. No other information (e.g. env.PROCESSOR_IDENTIFIER is not reported)
     CPU_NUMBER_OF_CORES(OVERRIDE, SAFE),
+
+    //TODO which artefact?
+    ARTEFACTS_DOWNLOAD_SPEED(OVERRIDE, RANDOM_10_PERCENT),
+
+    // Build script
+
+
+    // Component versions
+
+
+    // Enabled features
+
+    // Build performance
+
+
+    // Unprocessed
+
+
 
     // duration of the whole gradle build
     GRADLE_BUILD_DURATION(OVERRIDE, SAFE),

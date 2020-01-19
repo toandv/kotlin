@@ -11,11 +11,29 @@ import org.jetbrains.kotlin.statistics.metrics.StringOverridePolicy.*
 
 enum class StringMetrics(val type: StringOverridePolicy, val anonymization: StringAnonymizationPolicy, val perProject: Boolean = false) {
 
+    // User environment
     GRADLE_VERSION(OVERRIDE, COMPONENT_VERSION),
 
     OS_TYPE(OVERRIDE, SAFE),
 
+    //TODO could we collect only JB IDEs or, e.g. WsCode?
+    IDES_INSTALLED(CONCAT, SAFE),
+
+    // Build script
     MPP_PLATFORMS(CONCAT, SAFE),
+
+    // Component versions
+
+
+    // Enabled features
+
+    // Build performance
+
+
+    // Unprocessed
+
+
+
 
     ANDROID_GRADLE_PLUGIN_VERSION(OVERRIDE, COMPONENT_VERSION),
 
@@ -26,6 +44,7 @@ enum class StringMetrics(val type: StringOverridePolicy, val anonymization: Stri
     KOTLIN_REFLECT_VERSION(OVERRIDE, COMPONENT_VERSION),
 
     TEST_STRING_METRIC(OVERRIDE, SAFE)
+
 }
 
 

@@ -10,7 +10,51 @@ import org.jetbrains.kotlin.statistics.metrics.BooleanOverridePolicy.*
 
 
 enum class BooleanMetrics(val type: BooleanOverridePolicy, val anonymization: BooleanAnonymizationPolicy, val perProject: Boolean = false) {
-    BUILD_DURAION(OVERRIDE, SAFE),
 
-    TEST_BOOLEAN_METRIC(OVERRIDE, SAFE)
+    // User environment
+
+    // whether the build is executed from IDE or from console
+    EXECUTED_FROM_IDE(OVERRIDE, SAFE),
+
+
+    // Build script
+
+    //annotation processors
+
+    //TODO a lot of annotation processors
+    ENABLED_KAPT(OR, SAFE),
+    ENABLED_KOTLIN_ANDROID_EXTENSIOONS(OR, SAFE), // includes, e.g. Parcelize
+    ENABLES_DAGGER(OR, SAFE),
+    //kapt "com.android.databinding:compiler:3.0.1"
+    //TODO annotation processors: Kapt, Dagger, Data Binding, Parselize,
+    /*
+    https://awesomeopensource.com/project/androidannotations/androidannotations
+    https://awesomeopensource.com/project/airbnb/DeepLinkDispatch
+    https://awesomeopensource.com/project/johncarl81/parceler
+    https://awesomeopensource.com/project/immutables/immutables
+    https://awesomeopensource.com/project/mapstruct/mapstruct
+    https://awesomeopensource.com/project/janishar/PlaceHolderView
+    https://awesomeopensource.com/project/MatthiasRobbers/shortbread
+     */
+    //TODO a lot of annotation processors
+
+    //TODO compiler plugins:
+    //All-open
+    //no-arg
+    //jpa-support
+    //SAM-with-receiver
+
+    HMPP_ENABLED(OR, SAFE),
+
+
+    // Component versions
+
+
+    // Enabled features
+
+    // Build performance
+
+
+    // Unprocessed
+
 }

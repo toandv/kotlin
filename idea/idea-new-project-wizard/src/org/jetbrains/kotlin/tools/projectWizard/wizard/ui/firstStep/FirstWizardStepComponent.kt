@@ -1,6 +1,5 @@
 package org.jetbrains.kotlin.tools.projectWizard.wizard.ui.firstStep
 
-import org.jetbrains.kotlin.tools.projectWizard.core.TaskRunningContext
 import org.jetbrains.kotlin.tools.projectWizard.core.ValuesReadingContext
 import org.jetbrains.kotlin.tools.projectWizard.core.entity.SettingReference
 import org.jetbrains.kotlin.tools.projectWizard.core.entity.reference
@@ -16,10 +15,18 @@ import javax.swing.JComponent
 class FirstWizardStepComponent(wizard: IdeWizard) : WizardStepComponent(wizard.valuesReadingContext) {
     private val buildSystemSubStep = BuildSystemSubStep(wizard.valuesReadingContext).asSubComponent()
     private val templatesSubStep = TemplatesSubStep(wizard.valuesReadingContext).asSubComponent()
+    private val kotlinVersionSubStep = KotlinVersionSubstep(wizard.valuesReadingContext).asSubComponent()
 
     override val component: JComponent = panel {
         add(templatesSubStep.component, BorderLayout.CENTER)
-        add(buildSystemSubStep.component, BorderLayout.SOUTH)
+        add(
+            panel {
+                bordered(needBottomEmptyBorder = false)
+                add(buildSystemSubStep.component, BorderLayout.CENTER)
+                add(kotlinVersionSubStep.component, BorderLayout.SOUTH)
+            },
+            BorderLayout.SOUTH
+        )
     }
 }
 
@@ -28,9 +35,27 @@ class BuildSystemSubStep(valuesReadingContext: ValuesReadingContext) :
     private val buildSystemSetting = BuildSystemTypeSettingComponent(valuesReadingContext).asSubComponent()
 
     override fun buildContent(): JComponent = panel {
-        bordered(needBottomEmptyBorder = false)
         add(buildSystemSetting.component, BorderLayout.CENTER)
     }
+}
+
+class KotlinVersionSubstep(valuesReadingContext: ValuesReadingContext) :
+    SubStep(valuesReadingContext) {
+    private val kotlinVersionSetting = KotlinVersionSettingComponent(valuesReadingContext).asSubComponent()
+
+    private val panel by lazy(LazyThreadSafetyMode.NONE) {
+        panel {
+            add(kotlinVersionSetting.component, BorderLayout.CENTER)
+        }
+    }
+
+    override fun onInit() {
+        super.onInit()
+        val needToBeVisible = read { KotlinPlugin::kotlinVersions.propertyValue.size > 1 }
+        panel.isVisible = needToBeVisible
+    }
+
+    override fun buildContent(): JComponent = panel
 }
 
 class TemplatesSubStep(valuesReadingContext: ValuesReadingContext) :

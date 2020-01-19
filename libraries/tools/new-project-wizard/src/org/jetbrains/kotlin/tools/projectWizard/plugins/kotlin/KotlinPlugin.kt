@@ -3,6 +3,8 @@ package org.jetbrains.kotlin.tools.projectWizard.plugins.kotlin
 import org.jetbrains.kotlin.tools.projectWizard.core.*
 import org.jetbrains.kotlin.tools.projectWizard.core.entity.*
 import org.jetbrains.kotlin.tools.projectWizard.core.service.FileSystemWizardService
+import org.jetbrains.kotlin.tools.projectWizard.core.service.KotlinVersionProviderService
+import org.jetbrains.kotlin.tools.projectWizard.core.service.kotlinVersionKind
 import org.jetbrains.kotlin.tools.projectWizard.ir.buildsystem.*
 import org.jetbrains.kotlin.tools.projectWizard.phases.GenerationPhase
 import org.jetbrains.kotlin.tools.projectWizard.plugins.StructurePlugin
@@ -16,8 +18,17 @@ import org.jetbrains.kotlin.tools.projectWizard.settings.version.Version
 import java.nio.file.Path
 
 class KotlinPlugin(context: Context) : Plugin(context) {
-    val version by versionSetting("Kotlin Version", GenerationPhase.FIRST_STEP) {
-        defaultValue = DEFAULT_VERSION
+    val version by versionSetting("Kotlin Version", GenerationPhase.FIRST_STEP)
+
+    val kotlinVersions by listProperty<Version>()
+
+    val initKotlinVersions by pipelineTask(GenerationPhase.PREPARE) {
+        title = "Downloading list of Kotlin versions"
+
+        withAction {
+            val versions = service<KotlinVersionProviderService>()!!.getKotlinVersions()
+            KotlinPlugin::kotlinVersions.addValues(versions)
+        }
     }
 
     val projectKind by enumSetting<ProjectKind>("Project Kind", GenerationPhase.FIRST_STEP)
@@ -56,6 +67,17 @@ class KotlinPlugin(context: Context) : Plugin(context) {
                 val (buildFiles) = createBuildFiles(modules)
                 buildFiles.map { it.withIrs(RepositoryIR(DefaultRepository.MAVEN_CENTRAL)) }.asSuccess()
             }
+        }
+    }
+
+    val createPluginRepositories by pipelineTask(GenerationPhase.PROJECT_GENERATION) {
+        runBefore(BuildSystemPlugin::createModules)
+        withAction {
+            val pluginRepository = KotlinPlugin::version.settingValue.kotlinVersionKind.repository ?: return@withAction UNIT_SUCCESS
+            BuildSystemPlugin::pluginRepositoreis.addValues(pluginRepository) andThen
+                    updateBuildFiles { buildFile ->
+                        buildFile.withIrs(RepositoryIR(pluginRepository)).asSuccess()
+                    }
         }
     }
 

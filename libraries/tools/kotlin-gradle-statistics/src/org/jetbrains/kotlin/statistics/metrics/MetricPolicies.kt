@@ -13,13 +13,23 @@ import org.jetbrains.kotlin.statistics.sha256
 enum class StringOverridePolicy: IMetricContainerFactory<String> {
     OVERRIDE {
         override fun newMetricContainer(): IMetricContainer<String> = OverrideMetricContainer<String>()
+
+        override fun fromStringRepresentation(state: String): IMetricContainer<String>? = OverrideMetricContainer(state)
     },
     CONCAT {
         override fun newMetricContainer(): IMetricContainer<String> = ConcatMetricContainer()
+
+        override fun fromStringRepresentation(state: String): IMetricContainer<String>? {
+            TODO()
+        }
     },
     COUNT {
         override fun newMetricContainer(): IMetricContainer<String> {
             TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        override fun fromStringRepresentation(state: String): IMetricContainer<String>? {
+            TODO()
         }
     }
 }
@@ -27,10 +37,23 @@ enum class StringOverridePolicy: IMetricContainerFactory<String> {
 enum class NumberOverridePolicy: IMetricContainerFactory<Long> {
     OVERRIDE {
         override fun newMetricContainer(): IMetricContainer<Long> = OverrideMetricContainer<Long>()
+
+        override fun fromStringRepresentation(state: String): IMetricContainer<Long>? {
+            val longVal = state.toLongOrNull()
+            return if (longVal == null) {
+                null
+            } else {
+                OverrideMetricContainer(longVal)
+            }
+        }
     },
     SUM {
         override fun newMetricContainer(): IMetricContainer<Long> {
             TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        override fun fromStringRepresentation(state: String): IMetricContainer<Long>? {
+            TODO()
         }
 
     },
@@ -38,16 +61,35 @@ enum class NumberOverridePolicy: IMetricContainerFactory<Long> {
         override fun newMetricContainer(): IMetricContainer<Long> {
             TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
         }
+
+        override fun fromStringRepresentation(state: String): IMetricContainer<Long>? {
+            TODO()
+        }
     }
 }
 
 enum class BooleanOverridePolicy: IMetricContainerFactory<Boolean> {
     OVERRIDE {
         override fun newMetricContainer(): IMetricContainer<Boolean> = OverrideMetricContainer<Boolean>()
+
+        override fun fromStringRepresentation(state: String): IMetricContainer<Boolean>? = OverrideMetricContainer(state.toBoolean())
+    },
+    OR {
+        override fun newMetricContainer(): IMetricContainer<Boolean> {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        override fun fromStringRepresentation(state: String): IMetricContainer<Boolean>? {
+            TODO()
+        }
     },
     DISTRIBUTION {
         override fun newMetricContainer(): IMetricContainer<Boolean> {
             TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        override fun fromStringRepresentation(state: String): IMetricContainer<Boolean>? {
+            TODO()
         }
     }
 }

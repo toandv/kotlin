@@ -16,25 +16,26 @@ import java.nio.file.StandardOpenOption
 
 class FileRecordLogger(file: File) : IRecordLogger {
 
-    private val channel: FileChannel
+    private val channel: FileChannel =
+        FileChannel.open(Paths.get(file.toURI()), StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.APPEND)
+            ?: throw IOException("Could not open file $file")
+
     private val outputStream: OutputStream
     private val lock: FileLock
 
     init {
-        channel =
-            FileChannel.open(Paths.get(file.toURI()), StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.APPEND)
-                ?: throw IOException("Could not open file $file")
         lock = try {
             channel.lock()
-        } catch (e: IOException) {
+        } catch (e: Exception) {
             channel.close()
-            throw e
+            // wrap in order to unify with FileOverlappingException
+            throw IOException(e.message, e)
         }
         outputStream = Channels.newOutputStream(channel)
     }
 
-    override fun writeString(s: String) {
-        outputStream.write(s.toByteArray())
+    override fun append(s: String) {
+        outputStream.write("$s\n".toByteArray(MetricsContainer.ENCODING))
     }
 
     override fun close() {

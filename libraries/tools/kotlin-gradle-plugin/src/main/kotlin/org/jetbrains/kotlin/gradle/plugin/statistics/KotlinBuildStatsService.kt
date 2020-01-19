@@ -12,8 +12,8 @@ import org.gradle.api.logging.Logging
 import org.gradle.initialization.BuildCompletionListener
 import org.gradle.initialization.BuildRequestMetaData
 import org.gradle.invocation.DefaultGradle
-import org.jetbrains.kotlin.statistics.fileloggers.BuildSessionLogger
-import org.jetbrains.kotlin.statistics.fileloggers.BuildSessionLogger.Companion.STATISTICS_FOLDER_NAME
+import org.jetbrains.kotlin.statistics.BuildSessionLogger
+import org.jetbrains.kotlin.statistics.BuildSessionLogger.Companion.STATISTICS_FOLDER_NAME
 import org.jetbrains.kotlin.statistics.metrics.*
 import java.io.File
 import java.lang.management.ManagementFactory

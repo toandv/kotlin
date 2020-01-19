@@ -3,27 +3,37 @@
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
-package org.jetbrains.kotlin.statistics.fileloggers
+package org.jetbrains.kotlin.statistics
 
-import org.jetbrains.kotlin.statistics.*
+import org.jetbrains.kotlin.statistics.fileloggers.FileRecordLogger
+import org.jetbrains.kotlin.statistics.fileloggers.IRecordLogger
+import org.jetbrains.kotlin.statistics.fileloggers.MetricsContainer
+import org.jetbrains.kotlin.statistics.fileloggers.NullRecordLogger
 import org.jetbrains.kotlin.statistics.metrics.*
 import java.io.File
 import java.io.IOException
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-class BuildSessionLogger(rootPath: File) : IStatisticsValuesConsumer {
+class BuildSessionLogger(
+    private val rootPath: File,
+    private val maxProfileFiles: Int = DEFAULT_MAX_PROFILE_FILES,
+    private val maxFileSize: Long = DEFAULT_MAX_PROFILE_FILE_SIZE
+) : IStatisticsValuesConsumer {
 
     companion object {
         const val STATISTICS_FOLDER_NAME = "kotlin-profile"
-        const val STATISTICS_FILE_NAME_PATTERN = "\\d[4]-\\d[2]-\\d[2]-\\d[2]-\\d[2]-\\d[3].profile"
+        const val STATISTICS_FILE_NAME_PATTERN = "\\d{4}-\\d{2}-\\d{2}-\\d{2}-\\d{2}-\\d{2}-\\d{3}.profile"
 
-        val MAX_PROFILE_FILES = 1_000
-        val MAX_PROFILE_FILE_SIZE = 100_000L
+        private const val DEFAULT_MAX_PROFILE_FILES = 1_000
+        private const val DEFAULT_MAX_PROFILE_FILE_SIZE = 100_000L
     }
 
     private val profileFileNameFormatter = DateTimeFormatter.ofPattern("YYYY-MM-dd-HH-mm-ss-SSS'.profile'")
-    private val statisticsFolder: File = File(rootPath, STATISTICS_FOLDER_NAME).also { it.mkdirs() }
+    private val statisticsFolder: File = File(
+        rootPath,
+        STATISTICS_FOLDER_NAME
+    ).also { it.mkdirs() }
 
     private var buildSession: BuildSession? = null
     private var trackingFile: IRecordLogger? = null
@@ -53,9 +63,11 @@ class BuildSessionLogger(rootPath: File) : IStatisticsValuesConsumer {
         closeTrackingFile()
 
         // Get list of existing files. Try to create folder if possible, return from function if failed to create folder
-        val fileCandidates = statisticsFolder.listFiles()?.toMutableList() ?: if (statisticsFolder.mkdirs()) emptyList<File>() else return
+        val fileCandidates =
+            statisticsFolder.listFiles()?.filter { it.name.matches(STATISTICS_FILE_NAME_PATTERN.toRegex()) }?.toMutableList()
+                ?: if (statisticsFolder.mkdirs()) emptyList<File>() else return
 
-        for (i in 0..(fileCandidates.size - MAX_PROFILE_FILES)) {
+        for (i in 0 until fileCandidates.size - maxProfileFiles) {
             val file2delete = fileCandidates[i]
             if (file2delete.isFile) {
                 file2delete.delete()
@@ -63,21 +75,22 @@ class BuildSessionLogger(rootPath: File) : IStatisticsValuesConsumer {
         }
 
         // emergency check. What if a lot of files are locked due to some reason
-        if (statisticsFolder.listFiles()?.size ?: 0 > MAX_PROFILE_FILES * 2) {
+        if (statisticsFolder.listFiles()?.size ?: 0 > maxProfileFiles * 2) {
             return
         }
 
-        val lastFile = fileCandidates.lastOrNull() ?: File(statisticsFolder, profileFileNameFormatter.format(LocalDateTime.now()))
+        fun newFile(): File = File(statisticsFolder, profileFileNameFormatter.format(LocalDateTime.now()))
+        val lastFile = fileCandidates.lastOrNull() ?: newFile()
 
         trackingFile = try {
-            if (lastFile.length() < MAX_PROFILE_FILE_SIZE) {
+            if (lastFile.length() < maxFileSize) {
                 FileRecordLogger(lastFile)
             } else {
-                null
+                FileRecordLogger(newFile())
             }
         } catch (e: IOException) {
             try {
-                FileRecordLogger(File(statisticsFolder, profileFileNameFormatter.format(LocalDateTime.now())))
+                FileRecordLogger(newFile())
             } catch (e: IOException) {
                 NullRecordLogger()
             }

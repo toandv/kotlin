@@ -6,7 +6,7 @@
 package org.jetbrains.kotlin.statistics.fileloggers
 
 class NullRecordLogger : IRecordLogger {
-    override fun writeString(s: String) {}
+    override fun append(s: String) {}
 
     override fun close() {
     }

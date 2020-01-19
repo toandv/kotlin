@@ -10,17 +10,12 @@ import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.StartupActivity
 import com.intellij.util.concurrency.AppExecutorUtil
-import org.jetbrains.kotlin.statistics.fileloggers.BuildSessionLogger.Companion.STATISTICS_FILE_NAME_PATTERN
-import org.jetbrains.kotlin.statistics.fileloggers.BuildSessionLogger.Companion.STATISTICS_FOLDER_NAME
 import java.io.File
-import java.io.IOException
-import java.io.InputStream
-import java.nio.channels.Channels
-import java.nio.channels.FileChannel
-import java.nio.file.Paths
-import java.nio.file.StandardOpenOption
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+import org.jetbrains.kotlin.statistics.BuildSessionLogger.Companion.STATISTICS_FILE_NAME_PATTERN
+import org.jetbrains.kotlin.statistics.BuildSessionLogger.Companion.STATISTICS_FOLDER_NAME
+import org.jetbrains.kotlin.statistics.fileloggers.MetricsContainer
 
 class KotlinGradleFUSLogger : StartupActivity, DumbAware, Runnable {
 
@@ -49,38 +44,9 @@ class KotlinGradleFUSLogger : StartupActivity, DumbAware, Runnable {
         /**
          * Property name used for persisting gradle user dirs
          */
-        const val GRADLE_USER_DIRS_PROPERTY_NAME = "kotlin-gradle-user-dirs"
+        private const val GRADLE_USER_DIRS_PROPERTY_NAME = "kotlin-gradle-user-dirs"
 
         private val isRunning = AtomicBoolean(false)
-
-        private fun processFile(file: File) {
-            val channel = FileChannel.open(Paths.get(file.toURI()), StandardOpenOption.READ)
-            val lock = try {
-                channel.lock()
-            } catch (e: IOException) {
-                channel.close()
-                throw e
-            }
-            val inputStream = Channels.newOutputStream(channel)
-            try {
-                // read started marker
-                // read all metrics
-                // pass all read metrics to processor
-                // processor should group into events and send
-
-                //TODO read file content and report it's content
-            } finally {
-                channel.use {
-                    inputStream?.use {
-                        lock.release()
-                    }
-                }
-            }
-
-            //delete file
-
-            // unblock file
-        }
 
         fun reportStatistics() {
             if (isRunning.weakCompareAndSet(false, true)) {
@@ -90,7 +56,9 @@ class KotlinGradleFUSLogger : StartupActivity, DumbAware, Runnable {
                             it?.name?.matches(STATISTICS_FILE_NAME_PATTERN.toRegex()) ?: false
                         }?.forEach { statisticFile ->
                             try {
-                                processFile(statisticFile)
+                                MetricsContainer.readFromFile(statisticFile) {
+                                    //TODO
+                                }
                             } catch (e: Exception) {
                                 //TODO log
                             } finally {

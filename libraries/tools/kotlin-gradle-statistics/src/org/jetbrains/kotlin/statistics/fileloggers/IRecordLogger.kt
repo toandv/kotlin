@@ -9,6 +9,6 @@ import java.io.Closeable
 
 interface IRecordLogger : Closeable {
 
-    fun writeString(s: String)
+    fun append(s: String)
 
 }

@@ -9,26 +9,39 @@ interface IMetricContainer<T> {
     fun addValue(t: T)
 
     fun toStringRepresentation(): String
+
+    fun getValue(): T?
+
 }
 
 interface IMetricContainerFactory<T> {
     fun newMetricContainer(): IMetricContainer<T>
+
+    //null if could not parse
+    fun fromStringRepresentation(state: String): IMetricContainer<T>?
 }
 
 class OverrideMetricContainer<T>() : IMetricContainer<T> {
-    var myValue: T? = null
+
+    private var myValue: T? = null
 
     override fun addValue(t: T) {
         myValue = t
     }
 
+    internal constructor(v: T?) : this() {
+        myValue = v
+    }
+
     override fun toStringRepresentation(): String {
         return myValue?.toString() ?: "null"
     }
+
+    override fun getValue() = myValue
 }
 
 class ConcatMetricContainer() : IMetricContainer<String> {
-    val myValues = HashSet<String>()
+    private val myValues = HashSet<String>()
 
     override fun addValue(t: String) {
         myValues.add(t)
@@ -37,5 +50,7 @@ class ConcatMetricContainer() : IMetricContainer<String> {
     override fun toStringRepresentation(): String {
         return myValues.joinToString(";")
     }
+
+    override fun getValue() = toStringRepresentation()
 }
 

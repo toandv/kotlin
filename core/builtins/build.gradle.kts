@@ -1,3 +1,4 @@
+import org.gradle.api.tasks.PathSensitivity.RELATIVE
 import java.io.File
 
 plugins {
@@ -22,7 +23,7 @@ val serialize by tasks.registering(NoDebugJavaExec::class) {
     dependsOn(prepareSources)
     val outDir = "$buildDir/$name"
     val inDirs = arrayOf(builtinsSrc, builtinsNative, builtinsCherryPicked)
-    inDirs.forEach { inputs.dir(it) }
+    inDirs.forEach { inputs.dir(it).withPathSensitivity(RELATIVE) }
 
     outputs.dir(outDir)
     outputs.cacheIf { true }

@@ -40,14 +40,19 @@ internal object CheckExplicitReceiverConsistency : ResolutionStage() {
         // TODO: add invoke cases
         when (receiverKind) {
             NO_EXPLICIT_RECEIVER -> {
-                if (explicitReceiver != null && explicitReceiver !is FirResolvedQualifier)
+                if (explicitReceiver != null && explicitReceiver !is FirResolvedQualifier) {
                     return sink.yieldApplicability(CandidateApplicability.WRONG_RECEIVER)
+                }
             }
             EXTENSION_RECEIVER, DISPATCH_RECEIVER -> {
-                if (explicitReceiver == null) return sink.yieldApplicability(CandidateApplicability.WRONG_RECEIVER)
+                if (explicitReceiver == null) {
+                    return sink.yieldApplicability(CandidateApplicability.WRONG_RECEIVER)
+                }
             }
             BOTH_RECEIVERS -> {
-                if (explicitReceiver == null) return sink.yieldApplicability(CandidateApplicability.WRONG_RECEIVER)
+                if (explicitReceiver == null) {
+                    return sink.yieldApplicability(CandidateApplicability.WRONG_RECEIVER)
+                }
                 // Here we should also check additional invoke receiver
             }
         }

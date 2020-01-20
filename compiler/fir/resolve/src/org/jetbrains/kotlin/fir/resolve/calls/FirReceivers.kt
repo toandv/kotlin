@@ -57,9 +57,11 @@ class ClassDispatchReceiverValue(klassSymbol: FirClassSymbol<*>) : ReceiverValue
 }
 
 // TODO: should inherit just Receiver, not ReceiverValue
-abstract class AbstractExplicitReceiver<E : FirExpression> : ReceiverValue {
+abstract class AbstractExplicitReceiver<E : FirExpression> : Receiver {
     abstract val explicitReceiver: FirExpression
+}
 
+abstract class AbstractExplicitReceiverValue<E : FirExpression> : AbstractExplicitReceiver<E>(), ReceiverValue {
     override val type: ConeKotlinType
         get() = explicitReceiver.typeRef.coneTypeSafe()
             ?: ConeKotlinErrorType("No type calculated for: ${explicitReceiver.renderWithType()}") // TODO: assert here
@@ -69,7 +71,9 @@ abstract class AbstractExplicitReceiver<E : FirExpression> : ReceiverValue {
 }
 
 fun qualifierOrExpressionReceiver(explicitReceiver: FirExpression): AbstractExplicitReceiver<*> {
-    if (explicitReceiver is FirResolvedQualifier) return QualifierReceiver(explicitReceiver)
+    if (explicitReceiver is FirResolvedQualifier) {
+        return QualifierReceiver(explicitReceiver)
+    }
     return ExpressionReceiverValue(explicitReceiver)
 }
 
@@ -95,7 +99,7 @@ class QualifierReceiver(override val explicitReceiver: FirResolvedQualifier) : A
         return null to null
     }
 
-    override fun scope(useSiteSession: FirSession, scopeSession: ScopeSession): FirScope? {
+    fun qualifierScope(useSiteSession: FirSession, scopeSession: ScopeSession): FirScope? {
         val classId = explicitReceiver.classId ?: return null
 
         val (classSymbol, callablesScope) = getClassSymbolWithCallablesScope(classId, useSiteSession, scopeSession)
@@ -107,22 +111,21 @@ class QualifierReceiver(override val explicitReceiver: FirResolvedQualifier) : A
                 useSiteSession.firSymbolProvider.getNestedClassifierScope(classId)
             }
 
-            val qualifierScope = FirQualifierScope(callablesScope, classifierScope)
-            if ((klass as? FirRegularClass)?.companionObject == null) {
-                return qualifierScope
-            }
-            val companionScope = super.scope(useSiteSession, scopeSession) ?: return qualifierScope
-            return FirCompositeScope(qualifierScope, companionScope)
+            return FirQualifierScope(callablesScope, classifierScope)
         }
-        return super.scope(useSiteSession, scopeSession)
+        return null
+    }
+
+    override fun scope(useSiteSession: FirSession, scopeSession: ScopeSession): FirScope? {
+        return qualifierScope(useSiteSession, scopeSession)
     }
 }
 
-private class ExpressionReceiverValue(
+internal class ExpressionReceiverValue(
     override val explicitReceiver: FirExpression
-) : AbstractExplicitReceiver<FirExpression>(), ReceiverValue
+) : AbstractExplicitReceiverValue<FirExpression>(), ReceiverValue
 
-abstract class ImplicitReceiverValue<S : AbstractFirBasedSymbol<*>>(
+sealed class ImplicitReceiverValue<S : AbstractFirBasedSymbol<*>>(
     val boundSymbol: S,
     type: ConeKotlinType,
     private val useSiteSession: FirSession,
@@ -154,14 +157,8 @@ class ImplicitDispatchReceiverValue(
     useSiteSession: FirSession,
     scopeSession: ScopeSession
 ) : ImplicitReceiverValue<FirClassSymbol<*>>(boundSymbol, type, useSiteSession, scopeSession) {
-    val implicitCompanionScopes: List<FirScope> = run {
-        val klass = boundSymbol.fir as? FirRegularClass ?: return@run emptyList()
-        listOfNotNull(klass.companionObject?.scope(ConeSubstitutor.Empty, useSiteSession, scopeSession)) +
-                lookupSuperTypes(klass, lookupInterfaces = false, deep = true, useSiteSession = useSiteSession).mapNotNull {
-                    val superClass = (it as? ConeClassLikeType)?.lookupTag?.toSymbol(useSiteSession)?.fir as? FirRegularClass
-                    superClass?.companionObject?.scope(ConeSubstitutor.Empty, useSiteSession, scopeSession)
-                }
-    }
+    constructor(boundSymbol: FirClassSymbol<*>, useSiteSession: FirSession, scopeSession: ScopeSession) :
+            this(boundSymbol, boundSymbol.constructType(typeArguments = emptyArray(), isNullable = false), useSiteSession, scopeSession)
 }
 
 class ImplicitExtensionReceiverValue(

@@ -30,7 +30,7 @@ FILE: simple.kt
             }
 
             public final fun err(): R|kotlin/Unit| {
-                this@R|/Owner|.R|/Owner.foo|()
+                <Unresolved name: foo>#()
                 this@R|/Owner.Nested|.<Unresolved name: foo>#()
             }
 

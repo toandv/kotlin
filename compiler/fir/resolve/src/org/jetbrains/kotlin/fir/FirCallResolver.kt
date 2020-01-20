@@ -54,7 +54,7 @@ class FirCallResolver(
         this.transformer = transformer
     }
 
-    private val towerResolver = FirTowerResolver(
+    private val towerResolver = FirNewTowerResolver(
         returnTypeCalculator, this, resolutionStageRunner,
         topLevelScopes = topLevelScopes.asReversed(),
         localScopes = localScopes.asReversed()
@@ -315,7 +315,7 @@ class FirCallResolver(
 
     fun <T> selectCandidateFromGivenCandidates(call: T, name: Name, candidates: Collection<Candidate>): T where T : FirResolvable, T : FirCall {
         val result = CandidateCollector(this, resolutionStageRunner)
-        candidates.forEach { result.consumeCandidate(0, it) }
+        candidates.forEach { result.consumeCandidate(TowerGroup.Start, it) }
         val bestCandidates = result.bestCandidates()
         val reducedCandidates = if (result.currentApplicability < CandidateApplicability.SYNTHETIC_RESOLVED) {
             bestCandidates.toSet()

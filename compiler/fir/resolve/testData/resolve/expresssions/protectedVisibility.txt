@@ -60,8 +60,8 @@ FILE: protectedVisibility.kt
             this@R|/Derived|.R|/Protected.bar|()
             R|/Protected.Nested.Nested|().R|/Protected.Nested.foo|()
             R|/Protected.Nested.Nested|().<Inapplicable(HIDDEN): [/Protected.Nested.bar]>#()
-            R|/Protected.Companion.fromCompanion|()
-            <Inapplicable(HIDDEN): [/Protected.Companion.protectedFromCompanion]>#()
+            this@R|/Protected.Companion|.R|/Protected.Companion.fromCompanion|()
+            this@R|/Protected.Companion|.R|/Protected.Companion.protectedFromCompanion|()
         }
 
         private final class NestedDerived : R|Protected.Nested| {

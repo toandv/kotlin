@@ -17,6 +17,7 @@ import org.jetbrains.kotlin.fir.expressions.FirStatement
 import org.jetbrains.kotlin.fir.resolve.*
 import org.jetbrains.kotlin.fir.resolve.calls.ImplicitDispatchReceiverValue
 import org.jetbrains.kotlin.fir.resolve.calls.ImplicitExtensionReceiverValue
+import org.jetbrains.kotlin.fir.resolve.calls.ImplicitReceiverValue
 import org.jetbrains.kotlin.fir.resolve.calls.extractLambdaInfoFromFunctionalType
 import org.jetbrains.kotlin.fir.resolve.dfa.commonSuperTypeOrNull
 import org.jetbrains.kotlin.fir.resolve.substitution.ConeSubstitutor
@@ -494,8 +495,20 @@ class FirDeclarationsResolveTransformer(transformer: FirBodyResolveTransformer) 
         type: ConeKotlinType,
         block: () -> T
     ): T {
+        val implicitCompanionValues = mutableListOf<ImplicitReceiverValue<*>>()
         val implicitReceiverValue = when (owner) {
             is FirClass<*> -> {
+                // Questionable: performance
+                (owner as? FirRegularClass)?.companionObject?.let { companion ->
+                    implicitCompanionValues += ImplicitDispatchReceiverValue(companion.symbol, session, scopeSession)
+                }
+                lookupSuperTypes(owner, lookupInterfaces = false, deep = true, useSiteSession = session).mapNotNull {
+                    val superClass = (it as? ConeClassLikeType)?.lookupTag?.toSymbol(session)?.fir as? FirRegularClass
+                    superClass?.companionObject?.let { companion ->
+                        implicitCompanionValues += ImplicitDispatchReceiverValue(companion.symbol, session, scopeSession)
+                    }
+                }
+                // ---
                 ImplicitDispatchReceiverValue(owner.symbol, type, session, scopeSession)
             }
             is FirFunction<*> -> {
@@ -508,9 +521,15 @@ class FirDeclarationsResolveTransformer(transformer: FirBodyResolveTransformer) 
                 throw IllegalArgumentException("Incorrect label & receiver owner: ${owner.javaClass}")
             }
         }
+        for (implicitCompanionValue in implicitCompanionValues.asReversed()) {
+            implicitReceiverStack.add(null, implicitCompanionValue)
+        }
         implicitReceiverStack.add(labelName, implicitReceiverValue)
         val result = block()
         implicitReceiverStack.pop(labelName)
+        for (implicitCompanionValue in implicitCompanionValues) {
+            implicitReceiverStack.pop(null)
+        }
         return result
     }
 

@@ -1151,7 +1151,6 @@ public class Float private constructor() : Number(), Comparable<Float> {
      *
      * The resulting `Char` value is equal to `this.toInt().toChar()`.
      */
-    @Deprecated("Firstly convert `Float` to `Int` explicitly and then to `Char`", ReplaceWith("toInt().toChar()"))
     public override fun toChar(): Char
     /**
      * Converts this [Float] value to [Short].
@@ -1372,7 +1371,6 @@ public class Double private constructor() : Number(), Comparable<Double> {
      *
      * The resulting `Char` value is equal to `this.toInt().toChar()`.
      */
-    @Deprecated("Firstly convert `Double` to `Int` explicitly and then to `Char`", ReplaceWith("toInt().toChar()"))
     public override fun toChar(): Char
     /**
      * Converts this [Double] value to [Short].

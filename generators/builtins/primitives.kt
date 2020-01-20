@@ -345,7 +345,7 @@ class GeneratePrimitives(out: PrintWriter) : BuiltInsSourceGenerator(out) {
 
     private fun generateConversions(kind: PrimitiveType) {
         fun isConversionDeprecated(otherKind: PrimitiveType): Boolean {
-            return kind in PrimitiveType.floatingPoint && otherKind.isIntegral && compareByDomainCapacity(otherKind, PrimitiveType.INT) < 0
+            return kind in PrimitiveType.floatingPoint && otherKind in listOf(PrimitiveType.BYTE, PrimitiveType.SHORT)
         }
 
         val thisName = kind.capitalized

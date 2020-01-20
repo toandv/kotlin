@@ -761,9 +761,7 @@ internal class CacheBuilder(val project: Project, val binary: NativeBinary) {
     }
 
     private val String.cachedName
-        get() = konanCacheKind.outputKind?.let {
-            "${it.prefix(compilation.konanTarget)}${this}-cache${it.suffix(compilation.konanTarget)}"
-        } ?: error("No output for kind $konanCacheKind")
+        get() = getCacheFileName(this, konanCacheKind, compilation.konanTarget)
 
     private fun ensureCompilerProvidedLibPrecached(platformLibName: String, platformLibs: Map<String, File>, visitedLibs: MutableSet<String>) {
         if (platformLibName in visitedLibs)
@@ -823,6 +821,11 @@ internal class CacheBuilder(val project: Project, val binary: NativeBinary) {
             val optionsAwareCacheName = "$target${if (debuggable) "-g" else ""}$cacheKind"
             return konanHome.resolve("klib/cache/$optionsAwareCacheName")
         }
+
+        internal fun getCacheFileName(baseName: String, cacheKind: NativeCacheKind, konanTarget: KonanTarget): String =
+            cacheKind.outputKind?.let {
+                "${it.prefix(konanTarget)}${baseName}-cache${it.suffix(konanTarget)}"
+            } ?: error("No output for kind $cacheKind")
 
         internal val DEFAULT_CACHE_KIND: NativeCacheKind = NativeCacheKind.STATIC
     }

@@ -425,10 +425,6 @@ fun main(args: Array<String>) {
             model("compileKotlinAgainstKotlin", targetBackend = TargetBackend.JVM_IR)
         }
 
-        testClass<AbstractCompileKotlinAgainstKlibTest> {
-            model("codegen/boxKlib", targetBackend = TargetBackend.JVM_IR)
-        }
-
         testClass<AbstractIrCheckLocalVariablesTableTest> {
             model("checkLocalVariablesTable", targetBackend = TargetBackend.JVM_IR)
         }
@@ -514,6 +510,12 @@ fun main(args: Array<String>) {
         }
         testClass<AbstractIrCompileKotlinAgainstInlineKotlinTest> {
             model("codegen/boxInline", targetBackend = TargetBackend.JVM_IR)
+        }
+    }
+
+    testGroup("compiler/tests-against-klib/tests", "compiler/testData") {
+        testClass<AbstractCompileKotlinAgainstKlibTest> {
+            model("codegen/boxKlib", targetBackend = TargetBackend.JVM_IR)
         }
     }
 

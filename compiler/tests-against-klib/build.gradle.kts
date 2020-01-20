@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.KotlinCompile
+import java.io.File
 
 plugins {
     kotlin("jvm")
@@ -6,9 +8,7 @@ plugins {
 
 dependencies {
     compile(kotlinStdlib())
-    testCompile(project(":compiler:cli"))
-    testCompile(project(":kotlin-test:kotlin-test-jvm"))
-    testCompile(projectTests(":compiler:tests-common"))
+    testCompile(projectTests(":compiler:visualizer"))
 }
 
 sourceSets {
@@ -19,5 +19,9 @@ sourceSets {
 testsJar {}
 
 projectTest(parallel = true) {
+    dependsOn(":dist")
     dependsOn(":kotlin-stdlib-js-ir:generateFullRuntimeKLib")
+
+    workingDir = rootDir
+    systemProperty("kotlin.test.script.classpath", testSourceSet.output.classesDirs.joinToString(File.pathSeparator))
 }

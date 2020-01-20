@@ -27,12 +27,15 @@ import org.jetbrains.kotlin.cli.common.output.OutputUtilsKt;
 import org.jetbrains.kotlin.cli.jvm.compiler.EnvironmentConfigFiles;
 import org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreEnvironment;
 import org.jetbrains.kotlin.cli.jvm.compiler.NoScopeRecordCliBindingTrace;
+import org.jetbrains.kotlin.cli.jvm.config.JvmClasspathRoot;
+import org.jetbrains.kotlin.cli.jvm.config.JvmContentRootsKt;
 import org.jetbrains.kotlin.codegen.forTestCompile.ForTestCompileRuntime;
 import org.jetbrains.kotlin.codegen.state.GenerationState;
 import org.jetbrains.kotlin.config.*;
 import org.jetbrains.kotlin.fileClasses.JvmFileClassUtil;
 import org.jetbrains.kotlin.name.FqName;
 import org.jetbrains.kotlin.psi.KtFile;
+import org.jetbrains.kotlin.resolve.DescriptorUtils;
 import org.jetbrains.kotlin.scripting.definitions.ScriptDependenciesProvider;
 import org.jetbrains.kotlin.scripting.resolve.ScriptCompilationConfigurationWrapper;
 import org.jetbrains.kotlin.test.*;
@@ -58,10 +61,7 @@ import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -165,6 +165,7 @@ public abstract class CodegenTestCase extends KtUsefulTestCase {
     ) {
         LanguageVersionSettings explicitLanguageVersionSettings = null;
         boolean disableReleaseCoroutines = false;
+        boolean includeCompatExperimentalCoroutines = false;
 
         List<String> kotlinConfigurationFlags = new ArrayList<>(0);
         for (TestFile testFile : testFilesWithConfigurationDirectives) {
@@ -190,9 +191,14 @@ public abstract class CodegenTestCase extends KtUsefulTestCase {
 
             if (!InTextDirectivesUtils.findLinesWithPrefixesRemoved(testFile.content, "// COMMON_COROUTINES_TEST").isEmpty()) {
                 assert !testFile.content.contains("COROUTINES_PACKAGE") : "Must replace COROUTINES_PACKAGE prior to tests compilation";
-                if (coroutinesPackage.equals("kotlin.coroutines.experimental")) {
+                if (DescriptorUtils.COROUTINES_PACKAGE_FQ_NAME_EXPERIMENTAL.asString().equals(coroutinesPackage)) {
                     disableReleaseCoroutines = true;
+                    includeCompatExperimentalCoroutines = true;
                 }
+            }
+
+            if (testFile.content.contains(DescriptorUtils.COROUTINES_PACKAGE_FQ_NAME_EXPERIMENTAL.asString())) {
+                includeCompatExperimentalCoroutines = true;
             }
 
             Map<String, String> directives = KotlinTestUtils.parseDirectives(testFile.content);
@@ -211,6 +217,9 @@ public abstract class CodegenTestCase extends KtUsefulTestCase {
                     LanguageVersion.LATEST_STABLE,
                     Collections.emptyMap()
             );
+        }
+        if (includeCompatExperimentalCoroutines) {
+            JvmContentRootsKt.addJvmClasspathRoot(configuration, ForTestCompileRuntime.coroutinesCompatForTests());
         }
 
         if (explicitLanguageVersionSettings != null) {
@@ -424,6 +433,7 @@ public abstract class CodegenTestCase extends KtUsefulTestCase {
         if (additionalDependencies != null) {
             files.addAll(additionalDependencies);
         }
+        files.addAll(getExtraDependenciesFromKotlinCompileClasspath());
 
         ScriptDependenciesProvider externalImportsProvider =
                 ScriptDependenciesProvider.Companion.getInstance(myEnvironment.getProject());
@@ -449,6 +459,20 @@ public abstract class CodegenTestCase extends KtUsefulTestCase {
             throw ExceptionUtilsKt.rethrow(e);
         }
     }
+
+    private Set<File> getExtraDependenciesFromKotlinCompileClasspath() {
+        List<File> includeFromCompileClasspath = CollectionsKt.listOf(
+                ForTestCompileRuntime.coroutinesCompatForTests()
+        );
+        List<File> compileClasspath =
+                CollectionsKt.map(
+                        CollectionsKt.filterIsInstance(
+                                myEnvironment.getConfiguration().get(CLIConfigurationKeys.CONTENT_ROOTS),
+                                JvmClasspathRoot.class),
+                        JvmClasspathRoot::getFile);
+        return CollectionsKt.intersect(compileClasspath, includeFromCompileClasspath);
+    }
+
 
     @NotNull
     protected String generateToText() {
@@ -698,6 +722,7 @@ public abstract class CodegenTestCase extends KtUsefulTestCase {
             if (loadAndroidAnnotations) {
                 javaClasspath.add(ForTestCompileRuntime.androidAnnotationsForTests().getPath());
             }
+            javaClasspath.addAll(CollectionsKt.map(getExtraDependenciesFromKotlinCompileClasspath(), File::getPath));
 
             javaClassesOutputDirectory = getJavaClassesOutputDirectory();
             compileJava(findJavaSourcesInDirectory(javaSourceDir), javaClasspath, javacOptions, javaClassesOutputDirectory);

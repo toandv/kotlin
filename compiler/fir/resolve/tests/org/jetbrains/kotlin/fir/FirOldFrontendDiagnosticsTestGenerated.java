@@ -8469,6 +8469,11 @@ public class FirOldFrontendDiagnosticsTestGenerated extends AbstractFirOldFronte
             runTest("compiler/testData/diagnostics/tests/generics/kt30590.kt");
         }
 
+        @TestMetadata("kt34729.kt")
+        public void testKt34729() throws Exception {
+            runTest("compiler/testData/diagnostics/tests/generics/kt34729.kt");
+        }
+
         @TestMetadata("kt5508.kt")
         public void testKt5508() throws Exception {
             runTest("compiler/testData/diagnostics/tests/generics/kt5508.kt");
@@ -10535,6 +10540,11 @@ public class FirOldFrontendDiagnosticsTestGenerated extends AbstractFirOldFronte
 
             public void testAllFilesPresentInCompletion() throws Exception {
                 KotlinTestUtils.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("compiler/testData/diagnostics/tests/inference/completion"), Pattern.compile("^(.+)\\.kt$"), Pattern.compile("^(.+)\\.fir\\.kts?$"), true);
+            }
+
+            @TestMetadata("anonimousFunction.kt")
+            public void testAnonimousFunction() throws Exception {
+                runTest("compiler/testData/diagnostics/tests/inference/completion/anonimousFunction.kt");
             }
 
             @TestMetadata("basic.kt")

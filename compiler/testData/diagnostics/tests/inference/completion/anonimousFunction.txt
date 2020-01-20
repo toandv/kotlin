@@ -1,0 +1,5 @@
+package
+
+public fun </*0*/ T> materialize(): T
+public fun take(/*0*/ fn: () -> kotlin.collections.List<kotlin.String>): kotlin.Unit
+public fun test(): kotlin.Unit

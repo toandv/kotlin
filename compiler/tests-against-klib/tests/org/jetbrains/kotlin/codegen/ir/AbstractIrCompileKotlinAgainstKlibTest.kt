@@ -5,6 +5,9 @@
 
 package org.jetbrains.kotlin.codegen.ir
 
+import org.jetbrains.kotlin.cli.AbstractCliTest
+import org.jetbrains.kotlin.cli.common.ExitCode
+import org.jetbrains.kotlin.cli.js.K2JSCompiler
 import org.jetbrains.kotlin.cli.jvm.compiler.EnvironmentConfigFiles
 import org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreEnvironment.Companion.createForTests
 import org.jetbrains.kotlin.codegen.AbstractBlackBoxCodegenTest
@@ -70,20 +73,19 @@ abstract class AbstractCompileKotlinAgainstKlibTest : AbstractBlackBoxCodegenTes
     }
 
     // For now, while there is no common backend, we generate Klib using
-    // the JS_IR command line.
+    // the JS_IR compiler.
     private fun compileToKlib(files: List<TestFile>) {
         val sourceFiles = loadMultiFilesReal(files)
-        val process = ProcessBuilder(
-            "dist/kotlinc/bin/kotlinc-js",
-            "-output", klibName,
-            "-Xir-produce-klib-file",
-            "-libraries", "libraries/stdlib/js-ir/build/fullRuntime/klib/",
-            *sourceFiles.toTypedArray()
+        val (output, exitCode) = AbstractCliTest.executeCompilerGrabOutput(
+            K2JSCompiler(),
+            listOf(
+                "-output", klibName,
+                "-Xir-produce-klib-file",
+                "-libraries", "libraries/stdlib/js-ir/build/fullRuntime/klib/"
+            ) + sourceFiles
         )
-            .start()
-            .also { it.waitFor(TIMEOUT_SECONDS, TimeUnit.SECONDS) }
-        if (process.exitValue() != 0) {
-            throw Exception(process.errorStream.bufferedReader().readText())
+        if (exitCode != ExitCode.OK) {
+            throw Exception(output)
         }
     }
 

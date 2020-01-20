@@ -5,6 +5,7 @@
 
 package org.jetbrains.kotlin.fir.resolve.calls
 
+import org.jetbrains.kotlin.fir.expressions.impl.FirNoReceiverExpression
 import org.jetbrains.kotlin.fir.expressions.impl.FirQualifiedAccessExpressionImpl
 import org.jetbrains.kotlin.fir.resolve.transformQualifiedAccessUsingSmartcastInfo
 import org.jetbrains.kotlin.fir.resolve.transformers.body.resolve.firUnsafe
@@ -128,7 +129,7 @@ internal class TowerResolveManager(private val towerResolver: FirNewTowerResolve
                             val symbol = invokeReceiverCandidate.symbol as FirVariableSymbol<*>
                             val useExtensionReceiverAsArgument =
                                 symbol.fir.receiverTypeRef == null &&
-                                        invokeReceiverCandidate.explicitReceiverKind == ExplicitReceiverKind.EXTENSION_RECEIVER &&
+                                        //invokeReceiverCandidate.explicitReceiverKind == ExplicitReceiverKind.EXTENSION_RECEIVER &&
                                         symbol.fir.returnTypeRef.isExtensionFunctionType()
                             val invokeReceiverExpression = createExplicitReceiverForInvoke(invokeReceiverCandidate).let {
                                 if (!useExtensionReceiverAsArgument) {
@@ -141,8 +142,9 @@ internal class TowerResolveManager(private val towerResolver: FirNewTowerResolve
 
                             val invokeFunctionInfo =
                                 info.copy(explicitReceiver = invokeReceiverExpression, name = OperatorNameConventions.INVOKE).let {
-                                    if (useExtensionReceiverAsArgument) it.withReceiverAsArgument(extensionReceiverExpression)
-                                    else it
+                                    if (useExtensionReceiverAsArgument && extensionReceiverExpression !is FirNoReceiverExpression) {
+                                        it.withReceiverAsArgument(extensionReceiverExpression)
+                                    } else it
                                 }
 
                             val explicitReceiver = ExpressionReceiverValue(invokeReceiverExpression)

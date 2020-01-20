@@ -130,7 +130,7 @@ class ConvertJavaCopyPasteProcessor : CopyPastePostProcessor<TextBlockTransferab
             rangeMarker.isGreedyToLeft = true
             rangeMarker.isGreedyToRight = true
 
-            KotlinCopyPasteReferenceProcessor().processReferenceData(project, targetFile, bounds.start, referenceData.toTypedArray())
+            KotlinCopyPasteReferenceProcessor().processReferenceData(project, editor, targetFile, bounds.start, referenceData.toTypedArray())
 
             runWriteAction {
                 explicitImports.forEach { fqName ->

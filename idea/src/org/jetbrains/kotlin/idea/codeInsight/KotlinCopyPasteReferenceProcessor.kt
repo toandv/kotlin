@@ -37,7 +37,9 @@ import com.intellij.psi.*
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.util.concurrency.AppExecutorUtil
 import org.jetbrains.annotations.TestOnly
-import org.jetbrains.kotlin.descriptors.*
+import org.jetbrains.kotlin.descriptors.CallableDescriptor
+import org.jetbrains.kotlin.descriptors.DeclarationDescriptor
+import org.jetbrains.kotlin.descriptors.PackageFragmentDescriptor
 import org.jetbrains.kotlin.idea.caches.resolve.allowResolveInDispatchThread
 import org.jetbrains.kotlin.idea.caches.resolve.getResolutionFacade
 import org.jetbrains.kotlin.idea.caches.resolve.resolveImportReference
@@ -255,11 +257,12 @@ class KotlinCopyPasteReferenceProcessor : CopyPastePostProcessor<BasicKotlinRefe
         val file = PsiDocumentManager.getInstance(project).getPsiFile(document)
         if (file !is KtFile) return
 
-        processReferenceData(project, file, bounds.startOffset, values.single())
+        processReferenceData(project, editor, file, bounds.startOffset, values.single())
     }
 
     private fun processReferenceData(
         project: Project,
+        editor: Editor,
         file: KtFile,
         blockStart: Int,
         transferableData: BasicKotlinReferenceTransferableData
@@ -275,7 +278,7 @@ class KotlinCopyPasteReferenceProcessor : CopyPastePostProcessor<BasicKotlinRefe
                 .map { PsiElementByTextRange(it.textRange, it) }
         }
 
-        processReferenceData(project, file) { indicator: ProgressIndicator ->
+        processReferenceData(project, editor, file) { indicator: ProgressIndicator ->
             findReferenceDataToRestore(
                 file,
                 blockStart,
@@ -286,14 +289,15 @@ class KotlinCopyPasteReferenceProcessor : CopyPastePostProcessor<BasicKotlinRefe
         }
     }
 
-    fun processReferenceData(project: Project, file: KtFile, blockStart: Int, referenceData: Array<KotlinReferenceData>) {
-        processReferenceData(project, file) { indicator: ProgressIndicator ->
+    fun processReferenceData(project: Project, editor: Editor, file: KtFile, blockStart: Int, referenceData: Array<KotlinReferenceData>) {
+        processReferenceData(project, editor, file) { indicator: ProgressIndicator ->
             findReferencesToRestore(file, blockStart, referenceData)
         }
     }
 
     private fun processReferenceData(
         project: Project,
+        editor: Editor,
         file: KtFile,
         findReferenceProvider: (indicator: ProgressIndicator) -> List<ReferenceToRestoreData>
     ) {
@@ -309,13 +313,7 @@ class KotlinCopyPasteReferenceProcessor : CopyPastePostProcessor<BasicKotlinRefe
                         .finishOnUiThread(
                             ModalityState.defaultModalityState(),
                             Consumer<List<ReferenceToRestoreData>> { referencesPossibleToRestore ->
-                                val selectedReferencesToRestore =
-                                    showRestoreReferencesDialog(project, referencesPossibleToRestore)
-                                if (selectedReferencesToRestore.isEmpty()) return@Consumer
-
-                                project.executeWriteCommand("resolve pasted references") {
-                                    restoreReferences(selectedReferencesToRestore, file)
-                                }
+                                applyResolvedImports(project, referencesPossibleToRestore, file, editor)
                             }
                         )
                         .withDocumentsCommitted(project)
@@ -324,6 +322,24 @@ class KotlinCopyPasteReferenceProcessor : CopyPastePostProcessor<BasicKotlinRefe
             }
         }
         ProgressManager.getInstance().run(task)
+    }
+
+    private fun applyResolvedImports(
+        project: Project,
+        referencesPossibleToRestore: List<ReferenceToRestoreData>,
+        file: KtFile,
+        editor: Editor
+    ) {
+        val selectedReferencesToRestore =
+            showRestoreReferencesDialog(project, referencesPossibleToRestore)
+        if (selectedReferencesToRestore.isEmpty()) return
+
+        project.executeWriteCommand("resolve pasted references") {
+            val imported = TreeSet<String>()
+            restoreReferences(selectedReferencesToRestore, file, imported)
+
+            reviewAddedImports(project, editor, file, imported)
+        }
     }
 
     private fun findReferenceDataToRestore(
@@ -539,6 +555,8 @@ class KotlinCopyPasteReferenceProcessor : CopyPastePostProcessor<BasicKotlinRefe
         return null
     }
 
+
+
     private fun createReferenceToRestoreData(
         reference: KtReference,
         refData: KotlinReferenceData,
@@ -575,7 +593,11 @@ class KotlinCopyPasteReferenceProcessor : CopyPastePostProcessor<BasicKotlinRefe
         return reference.resolveToDescriptors(bindingContext).toList()
     }
 
-    private fun restoreReferences(referencesToRestore: Collection<ReferenceToRestoreData>, file: KtFile) {
+    private fun restoreReferences(
+        referencesToRestore: Collection<ReferenceToRestoreData>,
+        file: KtFile,
+        imported: MutableSet<String>
+    ) {
         val importHelper = ImportInsertHelper.getInstance(file.project)
         val smartPointerManager = SmartPointerManager.getInstance(file.project)
 
@@ -607,8 +629,12 @@ class KotlinCopyPasteReferenceProcessor : CopyPastePostProcessor<BasicKotlinRefe
         for (descriptor in descriptorsToImport) {
             importHelper.importDescriptor(file, descriptor)
         }
+
         for ((pointer, fqName) in bindingRequests) {
-            pointer.element?.mainReference?.bindToFqName(fqName, KtSimpleNameReference.ShorteningMode.DELAYED_SHORTENING)
+            pointer.element?.mainReference?.let {
+                it.bindToFqName(fqName, KtSimpleNameReference.ShorteningMode.DELAYED_SHORTENING)
+                imported.add(fqName.asString())
+            }
         }
         performDelayedRefactoringRequests(file.project)
     }

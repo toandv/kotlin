@@ -8,7 +8,6 @@ package kotlin.jvm.internal
 import kotlin.reflect.*
 
 @SinceKotlin("1.4")
-@Suppress("NEWER_VERSION_IN_SINCE_KOTLIN", "API_NOT_AVAILABLE" /* See KT-30129 */) // TODO: remove this in 1.4
 public class TypeReference(
     override val classifier: KClassifier,
     override val arguments: List<KTypeProjection>,
@@ -24,10 +23,7 @@ public class TypeReference(
     override fun hashCode(): Int =
         (classifier.hashCode() * 31 + arguments.hashCode()) * 31 + isMarkedNullable.hashCode()
 
-    override fun toString(): String =
-        asString() + Reflection.REFLECTION_NOT_AVAILABLE
-
-    private fun asString(): String {
+    override fun toString(): String {
         val javaClass = (classifier as? KClass<*>)?.java
         val klass = when {
             javaClass == null -> classifier.toString()
@@ -36,10 +32,10 @@ public class TypeReference(
         }
         val args =
             if (arguments.isEmpty()) ""
-            else arguments.joinToString(", ", "<", ">") { it.asString() }
+            else arguments.joinToString(", ", "<", ">") { it.toString().removeSuffix(Reflection.REFLECTION_NOT_AVAILABLE) }
         val nullable = if (isMarkedNullable) "?" else ""
 
-        return klass + args + nullable
+        return klass + args + nullable + Reflection.REFLECTION_NOT_AVAILABLE
     }
 
     private val Class<*>.arrayClassName
@@ -54,17 +50,4 @@ public class TypeReference(
             DoubleArray::class.java -> "kotlin.DoubleArray"
             else -> "kotlin.Array"
         }
-
-    // TODO: this should be the implementation of KTypeProjection.toString, see KT-30071
-    @Suppress("NO_REFLECTION_IN_CLASS_PATH")
-    private fun KTypeProjection.asString(): String {
-        if (variance == null) return "*"
-
-        val typeString = (type as? TypeReference)?.asString() ?: type.toString()
-        return when (variance) {
-            KVariance.INVARIANT -> typeString
-            KVariance.IN -> "in $typeString"
-            KVariance.OUT -> "out $typeString"
-        }
-    }
 }

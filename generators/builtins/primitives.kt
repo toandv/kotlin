@@ -373,7 +373,7 @@ class GeneratePrimitives(out: PrintWriter) : BuiltInsSourceGenerator(out) {
             out.println(doc)
 
             if (isConversionDeprecated(otherKind)) {
-                out.println("    @Deprecated(\"Unclear conversion. To achieve the same result convert to `Int` explicitly and then to `$otherName`.\", ReplaceWith(\"toInt().to$otherName()\"))")
+                out.println("    @Deprecated(\"Unclear conversion. To achieve the same result convert to Int explicitly and then to $otherName.\", ReplaceWith(\"toInt().to$otherName()\"))")
             }
 
             out.println("    public override fun to$otherName(): $otherName")

@@ -152,6 +152,7 @@ class FirNewTowerResolver(
                                 scopeSession = components.scopeSession
                             ), info, parentGroup.Implicit(dispatchDepth)
                         )
+                        if (collector.isSuccess()) return collector
                     }
                 }
                 for ((topIndex, topLevelScope) in topLevelScopes.withIndex()) {
@@ -202,6 +203,11 @@ class FirNewTowerResolver(
         if (shouldProcessExtensionsBeforeMembers) {
             // Special case (extension hides member)
             for ((index, topLevelScope) in topLevelScopes.withIndex()) {
+                manager.enqueueLevelForInvoke(
+                    ScopeTowerLevel(
+                        session, components, topLevelScope, extensionsOnly = true
+                    ), info, TowerGroup.TopPrioritized(index), InvokeResolveMode.RECEIVER_FOR_INVOKE_BUILTIN_EXTENSION
+                )
                 manager.processLevel(
                     ScopeTowerLevel(
                         session, components, topLevelScope, extensionReceiver = explicitReceiverValue, extensionsOnly = true
@@ -226,6 +232,10 @@ class FirNewTowerResolver(
         }
 
         for ((index, localScope) in localScopes.withIndex()) {
+            manager.enqueueLevelForInvoke(
+                ScopeTowerLevel(session, components, localScope), info, TowerGroup.Local(index),
+                InvokeResolveMode.RECEIVER_FOR_INVOKE_BUILTIN_EXTENSION
+            )
             manager.processLevel(
                 ScopeTowerLevel(
                     session, components, localScope, extensionReceiver = explicitReceiverValue
@@ -233,10 +243,15 @@ class FirNewTowerResolver(
             )
             if (collector.isSuccess()) return collector
         }
-        for ((implicitReceiverValue, usable, depth) in implicitReceivers) {
-            if (!usable) continue
+        for ((implicitReceiverValue, usableAsValue, depth) in implicitReceivers) {
+            if (!usableAsValue) continue
             // NB: companions are processed via implicitReceiverValues!
             val parentGroup = TowerGroup.Implicit(depth)
+            manager.enqueueLevelForInvoke(
+                MemberScopeTowerLevel(
+                    session, components, dispatchReceiver = implicitReceiverValue, scopeSession = components.scopeSession
+                ), info, parentGroup.Member, InvokeResolveMode.RECEIVER_FOR_INVOKE_BUILTIN_EXTENSION
+            )
             manager.processLevel(
                 MemberScopeTowerLevel(
                     session, components,
@@ -245,8 +260,42 @@ class FirNewTowerResolver(
                 ), info, parentGroup.Member, ExplicitReceiverKind.EXTENSION_RECEIVER
             )
             if (collector.isSuccess()) return collector
+            for ((localIndex, localScope) in localScopes.withIndex()) {
+                manager.enqueueLevelForInvoke(
+                    ScopeTowerLevel(
+                        session, components, localScope, extensionReceiver = implicitReceiverValue
+                    ), info, parentGroup.Local(localIndex), InvokeResolveMode.RECEIVER_FOR_INVOKE_BUILTIN_EXTENSION
+                )
+            }
+            for ((implicitDispatchReceiverValue, usable, dispatchDepth) in implicitReceivers) {
+                if (!usable) continue
+                val implicitDispatchReceiverScope = implicitDispatchReceiverValue.scope(session, components.scopeSession)
+                if (implicitDispatchReceiverScope != null) {
+                    manager.enqueueLevelForInvoke(
+                        MemberScopeTowerLevel(
+                            session,
+                            components,
+                            dispatchReceiver = implicitDispatchReceiverValue,
+                            extensionReceiver = implicitReceiverValue,
+                            scopeSession = components.scopeSession
+                        ), info, parentGroup.Implicit(dispatchDepth),
+                        InvokeResolveMode.RECEIVER_FOR_INVOKE_BUILTIN_EXTENSION
+                    )
+                }
+            }
+            for ((topIndex, topLevelScope) in topLevelScopes.withIndex()) {
+                manager.enqueueLevelForInvoke(
+                    ScopeTowerLevel(
+                        session, components, topLevelScope, extensionReceiver = implicitReceiverValue
+                    ), info, parentGroup.Top(topIndex), InvokeResolveMode.RECEIVER_FOR_INVOKE_BUILTIN_EXTENSION
+                )
+            }
         }
         for ((index, topLevelScope) in topLevelScopes.withIndex()) {
+            manager.enqueueLevelForInvoke(
+                ScopeTowerLevel(session, components, topLevelScope), info, TowerGroup.Top(index),
+                InvokeResolveMode.RECEIVER_FOR_INVOKE_BUILTIN_EXTENSION
+            )
             manager.processLevel(
                 ScopeTowerLevel(
                     session, components, topLevelScope, extensionReceiver = explicitReceiverValue
@@ -267,13 +316,17 @@ class FirNewTowerResolver(
         manager.enqueueLevelForInvoke(
             MemberScopeTowerLevel(
                 session, components, dispatchReceiver = invokeReceiverValue, scopeSession = components.scopeSession
-            ), info, TowerGroup.Member, ExplicitReceiverKind.DISPATCH_RECEIVER
+            ), info, TowerGroup.Member,
+            InvokeResolveMode.IMPLICIT_CALL_ON_GIVEN_RECEIVER,
+            ExplicitReceiverKind.DISPATCH_RECEIVER
         )
         for ((index, localScope) in localScopes.withIndex()) {
             manager.enqueueLevelForInvoke(
                 ScopeTowerLevel(
                     session, components, localScope, extensionReceiver = invokeReceiverValue
-                ), info, TowerGroup.Local(index), ExplicitReceiverKind.EXTENSION_RECEIVER
+                ), info, TowerGroup.Local(index),
+                InvokeResolveMode.IMPLICIT_CALL_ON_GIVEN_RECEIVER,
+                ExplicitReceiverKind.EXTENSION_RECEIVER
             )
         }
         for ((implicitReceiverValue, usable, depth) in implicitReceivers) {
@@ -285,30 +338,44 @@ class FirNewTowerResolver(
                     session, components,
                     dispatchReceiver = implicitReceiverValue, extensionReceiver = invokeReceiverValue,
                     scopeSession = components.scopeSession
-                ), info, parentGroup.Member, ExplicitReceiverKind.EXTENSION_RECEIVER
+                ), info, parentGroup.Member,
+                InvokeResolveMode.IMPLICIT_CALL_ON_GIVEN_RECEIVER,
+                ExplicitReceiverKind.EXTENSION_RECEIVER
             )
         }
         for ((index, topLevelScope) in topLevelScopes.withIndex()) {
             manager.enqueueLevelForInvoke(
                 ScopeTowerLevel(
                     session, components, topLevelScope, extensionReceiver = invokeReceiverValue
-                ), info, TowerGroup.Top(index), ExplicitReceiverKind.EXTENSION_RECEIVER
+                ), info, TowerGroup.Top(index),
+                InvokeResolveMode.IMPLICIT_CALL_ON_GIVEN_RECEIVER,
+                ExplicitReceiverKind.EXTENSION_RECEIVER
             )
         }
     }
 
-    internal fun enqueueResolverForBuiltinInvokeExtension(
+    // Here we already know extension receiver for invoke, and it's stated in info as first argument
+    internal fun enqueueResolverForBuiltinInvokeExtensionWithExplicitArgument(
         info: CallInfo,
         invokeReceiverValue: ExpressionReceiverValue,
         manager: TowerResolveManager
     ) {
-        // TODO: review carefully!
         manager.enqueueLevelForInvoke(
             MemberScopeTowerLevel(
                 session, components, dispatchReceiver = invokeReceiverValue,
                 scopeSession = components.scopeSession
-            ), info, TowerGroup.Member, ExplicitReceiverKind.DISPATCH_RECEIVER
+            ), info, TowerGroup.Member,
+            InvokeResolveMode.IMPLICIT_CALL_ON_GIVEN_RECEIVER,
+            ExplicitReceiverKind.DISPATCH_RECEIVER
         )
+    }
+
+    // Here we don't know extension receiver for invoke, assuming it's one of implicit receivers
+    internal fun enqueueResolverForBuiltinInvokeExtensionWithImplicitArgument(
+        info: CallInfo,
+        invokeReceiverValue: ExpressionReceiverValue,
+        manager: TowerResolveManager
+    ) {
         for ((implicitReceiverValue, usable, depth) in implicitReceivers) {
             if (!usable) continue
             val parentGroup = TowerGroup.Implicit(depth)
@@ -318,7 +385,9 @@ class FirNewTowerResolver(
                     extensionReceiver = implicitReceiverValue,
                     implicitExtensionInvokeMode = true,
                     scopeSession = components.scopeSession
-                ), info, parentGroup.InvokeExtension, ExplicitReceiverKind.DISPATCH_RECEIVER
+                ), info, parentGroup.InvokeExtension,
+                InvokeResolveMode.IMPLICIT_CALL_ON_GIVEN_RECEIVER,
+                ExplicitReceiverKind.DISPATCH_RECEIVER
             )
         }
     }
@@ -338,6 +407,12 @@ class FirNewTowerResolver(
         manager.resultCollector = collector
         if (info.callKind == CallKind.Function) {
             manager.invokeReceiverCollector = CandidateCollector(components, components.resolutionStageRunner)
+            manager.invokeReceiverCandidateFactory = CandidateFactory(components, info.replaceWithVariableAccess())
+            if (info.explicitReceiver != null) {
+                manager.invokeBuiltinExtensionReceiverCandidateFactory = CandidateFactory(
+                    components, info.replaceWithVariableAccess().replaceExplicitReceiver(null)
+                )
+            }
         }
 
         return when (val receiver = info.explicitReceiver) {

@@ -12,11 +12,14 @@ fun test(a: A, b: B, c: C) {
     with(a) {
         with(c) {
             b.foo(c)
+            // [this@a,b].foo.invoke(c)
         }
         with(b) {
-            c.<!UNRESOLVED_REFERENCE!>foo<!>()
+            c.foo()
+            // [this@a,this@b].foo.invoke(c)
             with(c) {
                 foo()
+                // [this@a,this@b].foo.invoke(this@c)
             }
         }
     }

@@ -52,7 +52,7 @@ data class CallInfo(
             isSafeCall, typeArguments, session, containingFile, implicitReceiverStack, expectedType, outerCSBuilder, lhs
         )
 
-    fun replaceExplicitReceiver(explicitReceiver: FirExpression): CallInfo =
+    fun replaceExplicitReceiver(explicitReceiver: FirExpression?): CallInfo =
         CallInfo(
             callKind, name, explicitReceiver, arguments,
             isSafeCall, typeArguments, session, containingFile, implicitReceiverStack, expectedType, outerCSBuilder, lhs

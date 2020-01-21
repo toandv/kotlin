@@ -16,6 +16,6 @@ class Foo {
         // this@Foo is dispatch receiver of foobar
         // Foo/foobar is dispatch receiver of invoke
         // this@chk is extension receiver of invoke
-        buz.foobar()
+        buz.<!UNRESOLVED_REFERENCE!>foobar<!>()
     }
 }

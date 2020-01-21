@@ -7,13 +7,19 @@ package org.jetbrains.kotlin.fir.resolve.calls
 
 import org.jetbrains.kotlin.resolve.calls.tasks.ExplicitReceiverKind
 
-internal class TowerResolveQuery(
+internal class TowerInvokeResolveQuery(
     val towerLevel: SessionBasedTowerLevel,
     val callInfo: CallInfo,
     val explicitReceiverKind: ExplicitReceiverKind,
-    val group: TowerGroup
-) : Comparable<TowerResolveQuery> {
-    override fun compareTo(other: TowerResolveQuery): Int {
+    val group: TowerGroup,
+    val mode: InvokeResolveMode
+) : Comparable<TowerInvokeResolveQuery> {
+    override fun compareTo(other: TowerInvokeResolveQuery): Int {
         return group.compareTo(other.group)
     }
+}
+
+enum class InvokeResolveMode {
+    IMPLICIT_CALL_ON_GIVEN_RECEIVER,
+    RECEIVER_FOR_INVOKE_BUILTIN_EXTENSION
 }

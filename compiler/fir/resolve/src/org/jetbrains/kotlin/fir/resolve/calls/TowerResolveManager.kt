@@ -77,9 +77,6 @@ class TowerResolveManager internal constructor(private val towerResolver: FirNew
                     candidate
                 )
                 dispatchReceiver = candidate.dispatchReceiverExpression()
-                // NB: this should fix problem in DFA (KT-36014)
-                safe = info.isSafeCall
-                // ---
                 typeRef = towerResolver.typeCalculator.tryCalculateReturnType(symbol.firUnsafe())
             }
         }
@@ -146,6 +143,7 @@ class TowerResolveManager internal constructor(private val towerResolver: FirNew
                                     it.extensionReceiver = extensionReceiverExpression
                                     // NB: this should fix problem in DFA (KT-36014)
                                     it.explicitReceiver = info.explicitReceiver
+                                    it.safe = info.isSafeCall
                                 }
                                 towerResolver.components.transformQualifiedAccessUsingSmartcastInfo(it)
                             }

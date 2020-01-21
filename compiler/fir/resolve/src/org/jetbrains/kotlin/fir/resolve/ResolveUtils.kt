@@ -355,7 +355,8 @@ internal fun typeForQualifierByDeclaration(declaration: FirDeclaration, resultTy
 fun <T : FirResolvable> BodyResolveComponents.typeFromCallee(access: T): FirResolvedTypeRef {
     val makeNullable: Boolean by lazy {
         if (access is FirQualifiedAccess && access.safe) {
-            val explicitReceiver = access.explicitReceiver!!
+            val explicitReceiver = access.explicitReceiver
+                ?: throw AssertionError("Safe call without explicit receiver: ${access.render()}")
             val receiverResultType = explicitReceiver.resultType
             if (receiverResultType is FirResolvedTypeRef) {
                 receiverResultType.type.isNullable

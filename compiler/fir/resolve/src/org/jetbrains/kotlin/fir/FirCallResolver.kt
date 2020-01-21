@@ -251,7 +251,8 @@ class FirCallResolver(
         val result = towerResolver.runResolver(
             implicitReceiverStack.receiversAsReversed(),
             info,
-            collector = CandidateCollector(this, resolutionStageRunner)
+            collector = CandidateCollector(this, resolutionStageRunner),
+            manager = TowerResolveManager(towerResolver)
         )
         val bestCandidates = result.bestCandidates()
         val noSuccessfulCandidates = result.currentApplicability < CandidateApplicability.SYNTHETIC_RESOLVED

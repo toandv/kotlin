@@ -17,7 +17,7 @@ import org.jetbrains.kotlin.resolve.calls.tasks.ExplicitReceiverKind
 import org.jetbrains.kotlin.util.OperatorNameConventions
 import java.util.*
 
-internal class TowerResolveManager(private val towerResolver: FirNewTowerResolver) {
+class TowerResolveManager internal constructor(private val towerResolver: FirNewTowerResolver) {
     private val queue = PriorityQueue<TowerResolveQuery>()
 
     private var group = TowerGroup.Start
@@ -150,9 +150,13 @@ internal class TowerResolveManager(private val towerResolver: FirNewTowerResolve
                             val explicitReceiver = ExpressionReceiverValue(invokeReceiverExpression)
                             // TODO: not all groups should be created here?
                             if (useExtensionReceiverAsArgument) {
-                                towerResolver.enqueueResolverForBuiltinInvokeExtension(invokeFunctionInfo, explicitReceiver)
+                                towerResolver.enqueueResolverForBuiltinInvokeExtension(
+                                    invokeFunctionInfo, explicitReceiver, this@TowerResolveManager
+                                )
                             } else {
-                                towerResolver.enqueueResolverForInvoke(invokeFunctionInfo, explicitReceiver)
+                                towerResolver.enqueueResolverForInvoke(
+                                    invokeFunctionInfo, explicitReceiver, this@TowerResolveManager
+                                )
                             }
                             processQueuedLevelsForInvoke()
                         }
@@ -194,10 +198,6 @@ internal class TowerResolveManager(private val towerResolver: FirNewTowerResolve
     fun reset() {
         queue.clear()
         group = TowerGroup.Start
-    }
-
-    fun add(query: TowerResolveQuery) {
-        queue.add(query)
     }
 
     fun processLevel(

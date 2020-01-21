@@ -22,7 +22,7 @@ sealed class TowerGroupKind(private val index: Int) : Comparable<TowerGroupKind>
 
     class Implicit(depth: Int) : WithDepth(4, depth)
 
-    class InvokeExtension(depth: Int) : WithDepth(5, depth)
+    object InvokeExtension : TowerGroupKind(5)
 
     class Top(depth: Int) : WithDepth(6, depth)
 
@@ -55,8 +55,6 @@ class TowerGroup private constructor(private val list: List<TowerGroupKind>) : C
 
         fun Implicit(depth: Int) = kindOf(TowerGroupKind.Implicit(depth))
 
-        fun InvokeExtension(depth: Int) = kindOf(TowerGroupKind.InvokeExtension(depth))
-
         fun Top(depth: Int) = kindOf(TowerGroupKind.Top(depth))
 
         fun TopPrioritized(depth: Int) = kindOf(TowerGroupKind.TopPrioritized(depth))
@@ -78,7 +76,7 @@ class TowerGroup private constructor(private val list: List<TowerGroupKind>) : C
 
     fun Implicit(depth: Int) = kindOf(TowerGroupKind.Implicit(depth))
 
-    fun InvokeExtension(depth: Int) = kindOf(TowerGroupKind.InvokeExtension(depth))
+    val InvokeExtension get() = kindOf(TowerGroupKind.InvokeExtension)
 
     fun Top(depth: Int) = kindOf(TowerGroupKind.Top(depth))
 

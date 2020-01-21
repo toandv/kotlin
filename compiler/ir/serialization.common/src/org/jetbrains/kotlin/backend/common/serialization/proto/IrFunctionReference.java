@@ -84,6 +84,11 @@ public final class IrFunctionReference extends
             bitField0_ |= 0x00000004;
             break;
           }
+          case 32: {
+            bitField0_ |= 0x00000008;
+            isWithReflection_ = input.readBool();
+            break;
+          }
         }
       }
     } catch (org.jetbrains.kotlin.protobuf.InvalidProtocolBufferException e) {
@@ -163,10 +168,26 @@ public final class IrFunctionReference extends
     return memberAccess_;
   }
 
+  public static final int IS_WITH_REFLECTION_FIELD_NUMBER = 4;
+  private boolean isWithReflection_;
+  /**
+   * <code>required bool is_with_reflection = 4;</code>
+   */
+  public boolean hasIsWithReflection() {
+    return ((bitField0_ & 0x00000008) == 0x00000008);
+  }
+  /**
+   * <code>required bool is_with_reflection = 4;</code>
+   */
+  public boolean getIsWithReflection() {
+    return isWithReflection_;
+  }
+
   private void initFields() {
     symbol_ = 0;
     origin_ = org.jetbrains.kotlin.backend.common.serialization.proto.IrStatementOrigin.getDefaultInstance();
     memberAccess_ = org.jetbrains.kotlin.backend.common.serialization.proto.MemberAccessCommon.getDefaultInstance();
+    isWithReflection_ = false;
   }
   private byte memoizedIsInitialized = -1;
   public final boolean isInitialized() {
@@ -179,6 +200,10 @@ public final class IrFunctionReference extends
       return false;
     }
     if (!hasMemberAccess()) {
+      memoizedIsInitialized = 0;
+      return false;
+    }
+    if (!hasIsWithReflection()) {
       memoizedIsInitialized = 0;
       return false;
     }
@@ -208,6 +233,9 @@ public final class IrFunctionReference extends
     if (((bitField0_ & 0x00000004) == 0x00000004)) {
       output.writeMessage(3, memberAccess_);
     }
+    if (((bitField0_ & 0x00000008) == 0x00000008)) {
+      output.writeBool(4, isWithReflection_);
+    }
     output.writeRawBytes(unknownFields);
   }
 
@@ -228,6 +256,10 @@ public final class IrFunctionReference extends
     if (((bitField0_ & 0x00000004) == 0x00000004)) {
       size += org.jetbrains.kotlin.protobuf.CodedOutputStream
         .computeMessageSize(3, memberAccess_);
+    }
+    if (((bitField0_ & 0x00000008) == 0x00000008)) {
+      size += org.jetbrains.kotlin.protobuf.CodedOutputStream
+        .computeBoolSize(4, isWithReflection_);
     }
     size += unknownFields.size();
     memoizedSerializedSize = size;
@@ -329,6 +361,8 @@ public final class IrFunctionReference extends
       bitField0_ = (bitField0_ & ~0x00000002);
       memberAccess_ = org.jetbrains.kotlin.backend.common.serialization.proto.MemberAccessCommon.getDefaultInstance();
       bitField0_ = (bitField0_ & ~0x00000004);
+      isWithReflection_ = false;
+      bitField0_ = (bitField0_ & ~0x00000008);
       return this;
     }
 
@@ -364,6 +398,10 @@ public final class IrFunctionReference extends
         to_bitField0_ |= 0x00000004;
       }
       result.memberAccess_ = memberAccess_;
+      if (((from_bitField0_ & 0x00000008) == 0x00000008)) {
+        to_bitField0_ |= 0x00000008;
+      }
+      result.isWithReflection_ = isWithReflection_;
       result.bitField0_ = to_bitField0_;
       return result;
     }
@@ -379,6 +417,9 @@ public final class IrFunctionReference extends
       if (other.hasMemberAccess()) {
         mergeMemberAccess(other.getMemberAccess());
       }
+      if (other.hasIsWithReflection()) {
+        setIsWithReflection(other.getIsWithReflection());
+      }
       setUnknownFields(
           getUnknownFields().concat(other.unknownFields));
       return this;
@@ -390,6 +431,10 @@ public final class IrFunctionReference extends
         return false;
       }
       if (!hasMemberAccess()) {
+        
+        return false;
+      }
+      if (!hasIsWithReflection()) {
         
         return false;
       }
@@ -574,6 +619,38 @@ public final class IrFunctionReference extends
       memberAccess_ = org.jetbrains.kotlin.backend.common.serialization.proto.MemberAccessCommon.getDefaultInstance();
 
       bitField0_ = (bitField0_ & ~0x00000004);
+      return this;
+    }
+
+    private boolean isWithReflection_ ;
+    /**
+     * <code>required bool is_with_reflection = 4;</code>
+     */
+    public boolean hasIsWithReflection() {
+      return ((bitField0_ & 0x00000008) == 0x00000008);
+    }
+    /**
+     * <code>required bool is_with_reflection = 4;</code>
+     */
+    public boolean getIsWithReflection() {
+      return isWithReflection_;
+    }
+    /**
+     * <code>required bool is_with_reflection = 4;</code>
+     */
+    public Builder setIsWithReflection(boolean value) {
+      bitField0_ |= 0x00000008;
+      isWithReflection_ = value;
+      
+      return this;
+    }
+    /**
+     * <code>required bool is_with_reflection = 4;</code>
+     */
+    public Builder clearIsWithReflection() {
+      bitField0_ = (bitField0_ & ~0x00000008);
+      isWithReflection_ = false;
+      
       return this;
     }
 

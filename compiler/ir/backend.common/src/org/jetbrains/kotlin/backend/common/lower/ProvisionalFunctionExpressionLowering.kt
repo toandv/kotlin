@@ -37,7 +37,8 @@ class ProvisionalFunctionExpressionLowering :
                 function,
                 IrFunctionReferenceImpl(
                     startOffset, endOffset, type,
-                    function.symbol, 0, origin
+                    function.symbol,
+                    typeArgumentsCount = 0, isWithReflection = false, origin = origin
                 )
             )
         )

@@ -455,6 +455,7 @@ abstract class IrFileDeserializer(
             symbol,
             proto.memberAccess.typeArguments.typeArgumentCount,
             proto.memberAccess.valueArgumentCount,
+            proto.isWithReflection, // TODO
             origin
         )
         deserializeMemberAccessCommon(callable, proto.memberAccess)

@@ -389,6 +389,7 @@ class LocalDeclarationsLowering(
                     expression.type, // TODO functional type for transformed descriptor
                     newCallee.symbol,
                     newCallee.typeParameters.size,
+                    expression.isWithReflection,
                     expression.origin
                 ).also {
                     it.fillArguments2(expression, newCallee)

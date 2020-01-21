@@ -178,6 +178,7 @@ class InnerClassConstructorCallsLowering(val context: BackendContext) : FileLowe
                         type,
                         newCallee.symbol,
                         typeArgumentsCount,
+                        isWithReflection,
                         origin
                     )
                 }

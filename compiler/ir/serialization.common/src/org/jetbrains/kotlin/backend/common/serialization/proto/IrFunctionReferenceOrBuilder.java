@@ -33,4 +33,13 @@ public interface IrFunctionReferenceOrBuilder extends
    * <code>required .org.jetbrains.kotlin.backend.common.serialization.proto.MemberAccessCommon member_access = 3;</code>
    */
   org.jetbrains.kotlin.backend.common.serialization.proto.MemberAccessCommon getMemberAccess();
+
+  /**
+   * <code>required bool is_with_reflection = 4;</code>
+   */
+  boolean hasIsWithReflection();
+  /**
+   * <code>required bool is_with_reflection = 4;</code>
+   */
+  boolean getIsWithReflection();
 }

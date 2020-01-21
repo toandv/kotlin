@@ -188,8 +188,8 @@ object JsIrBuilder {
     fun buildComposite(type: IrType, statements: List<IrStatement> = emptyList()) =
         IrCompositeImpl(UNDEFINED_OFFSET, UNDEFINED_OFFSET, type, SYNTHESIZED_STATEMENT, statements)
 
-    fun buildFunctionReference(type: IrType, symbol: IrFunctionSymbol) =
-        IrFunctionReferenceImpl(UNDEFINED_OFFSET, UNDEFINED_OFFSET, type, symbol, 0, null)
+    fun buildFunctionReference(type: IrType, symbol: IrFunctionSymbol, isWithReflection: Boolean = true) =
+        IrFunctionReferenceImpl(UNDEFINED_OFFSET, UNDEFINED_OFFSET, type, symbol, 0, isWithReflection, null)
 
     fun buildVar(
         type: IrType,

@@ -106,6 +106,7 @@ internal class InlineCallableReferenceToLambdaPhase(val context: JvmBackendConte
                 field.type,
                 function.symbol,
                 typeArgumentsCount = 0,
+                isWithReflection = false,
                 origin = IrStatementOrigin.LAMBDA
             ).apply {
                 copyAttributes(expression)
@@ -174,8 +175,9 @@ internal class InlineCallableReferenceToLambdaPhase(val context: JvmBackendConte
                 expression.endOffset,
                 function.returnType,
                 function.symbol,
-                function.typeParameters.size,
-                IrStatementOrigin.LAMBDA
+                typeArgumentsCount = function.typeParameters.size,
+                isWithReflection = false,
+                origin = IrStatementOrigin.LAMBDA
             ).apply {
                 copyAttributes(expression)
             }

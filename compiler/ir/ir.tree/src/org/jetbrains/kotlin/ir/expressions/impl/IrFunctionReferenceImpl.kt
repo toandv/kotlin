@@ -29,6 +29,7 @@ class IrFunctionReferenceImpl(
     override val symbol: IrFunctionSymbol,
     typeArgumentsCount: Int,
     valueArgumentsCount: Int,
+    override val isWithReflection: Boolean,
     origin: IrStatementOrigin? = null
 ) :
     IrCallWithIndexedArgumentsBase(
@@ -47,8 +48,9 @@ class IrFunctionReferenceImpl(
         type: IrType,
         symbol: IrFunctionSymbol,
         typeArgumentsCount: Int,
+        isWithReflection: Boolean,
         origin: IrStatementOrigin? = null
-    ) : this(startOffset, endOffset, type, symbol, typeArgumentsCount, symbol.descriptor.valueParameters.size, origin)
+    ) : this(startOffset, endOffset, type, symbol, typeArgumentsCount, symbol.descriptor.valueParameters.size, isWithReflection, origin)
 
     override fun <R, D> accept(visitor: IrElementVisitor<R, D>, data: D): R =
         visitor.visitFunctionReference(this, data)

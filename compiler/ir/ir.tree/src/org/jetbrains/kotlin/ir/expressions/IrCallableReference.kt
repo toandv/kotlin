@@ -22,6 +22,7 @@ interface IrCallableReference : IrMemberAccessExpression
 
 interface IrFunctionReference : IrCallableReference {
     override val symbol: IrFunctionSymbol
+    val isWithReflection: Boolean
 }
 
 interface IrPropertyReference : IrCallableReference {

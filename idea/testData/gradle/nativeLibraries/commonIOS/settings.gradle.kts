@@ -2,6 +2,6 @@ pluginManagement {
     repositories {
         jcenter()
         gradlePluginPortal()
-        maven { setUrl("https://dl.bintray.com/kotlin/kotlin-dev") }
+        maven("https://dl.bintray.com/kotlin/kotlin-dev")
     }
 }

@@ -155,10 +155,17 @@ class ImplicitDispatchReceiverValue(
     boundSymbol: FirClassSymbol<*>,
     type: ConeKotlinType,
     useSiteSession: FirSession,
-    scopeSession: ScopeSession
+    scopeSession: ScopeSession,
+    val companionFromSupertype: Boolean = false
 ) : ImplicitReceiverValue<FirClassSymbol<*>>(boundSymbol, type, useSiteSession, scopeSession) {
-    constructor(boundSymbol: FirClassSymbol<*>, useSiteSession: FirSession, scopeSession: ScopeSession) :
-            this(boundSymbol, boundSymbol.constructType(typeArguments = emptyArray(), isNullable = false), useSiteSession, scopeSession)
+    constructor(boundSymbol: FirClassSymbol<*>, useSiteSession: FirSession, scopeSession: ScopeSession, companionFromSupertype: Boolean) :
+            this(
+                boundSymbol,
+                boundSymbol.constructType(typeArguments = emptyArray(), isNullable = false),
+                useSiteSession,
+                scopeSession,
+                companionFromSupertype
+            )
 }
 
 class ImplicitExtensionReceiverValue(

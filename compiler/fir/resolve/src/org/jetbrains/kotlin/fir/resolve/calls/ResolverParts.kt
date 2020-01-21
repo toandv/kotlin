@@ -289,11 +289,9 @@ internal object CheckVisibility : CheckerStage() {
     private fun ImplicitReceiverStack.canSeePrivateMemberOf(ownerId: ClassId): Boolean {
         for (implicitReceiverValue in receiversAsReversed()) {
             if (implicitReceiverValue !is ImplicitDispatchReceiverValue) continue
+            if (implicitReceiverValue.companionFromSupertype) continue
             val boundSymbol = implicitReceiverValue.boundSymbol
             if (boundSymbol.classId.isSame(ownerId)) {
-                return true
-            }
-            if (boundSymbol is FirRegularClassSymbol && boundSymbol.fir.companionObject?.symbol?.classId?.isSame(ownerId) == true) {
                 return true
             }
         }
@@ -321,6 +319,7 @@ internal object CheckVisibility : CheckerStage() {
         val visited = mutableSetOf<ClassId>()
         for (implicitReceiverValue in receiversAsReversed()) {
             if (implicitReceiverValue !is ImplicitDispatchReceiverValue) continue
+            if (implicitReceiverValue.companionFromSupertype) continue
             val boundSymbol = implicitReceiverValue.boundSymbol
             val superTypes = boundSymbol.fir.superConeTypes
             for (superType in superTypes) {

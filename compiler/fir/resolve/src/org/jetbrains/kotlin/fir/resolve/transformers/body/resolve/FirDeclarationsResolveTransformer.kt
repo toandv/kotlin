@@ -500,12 +500,16 @@ class FirDeclarationsResolveTransformer(transformer: FirBodyResolveTransformer) 
             is FirClass<*> -> {
                 // Questionable: performance
                 (owner as? FirRegularClass)?.companionObject?.let { companion ->
-                    implicitCompanionValues += ImplicitDispatchReceiverValue(companion.symbol, session, scopeSession)
+                    implicitCompanionValues += ImplicitDispatchReceiverValue(
+                        companion.symbol, session, scopeSession, companionFromSupertype = false
+                    )
                 }
                 lookupSuperTypes(owner, lookupInterfaces = false, deep = true, useSiteSession = session).mapNotNull {
                     val superClass = (it as? ConeClassLikeType)?.lookupTag?.toSymbol(session)?.fir as? FirRegularClass
                     superClass?.companionObject?.let { companion ->
-                        implicitCompanionValues += ImplicitDispatchReceiverValue(companion.symbol, session, scopeSession)
+                        implicitCompanionValues += ImplicitDispatchReceiverValue(
+                            companion.symbol, session, scopeSession, companionFromSupertype = true
+                        )
                     }
                 }
                 // ---

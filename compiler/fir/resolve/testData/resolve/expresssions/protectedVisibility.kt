@@ -34,7 +34,7 @@ class Derived : Protected() {
         Nested().<!INAPPLICABLE_CANDIDATE!>bar<!>() // hidden
 
         fromCompanion()
-        protectedFromCompanion()
+        <!INAPPLICABLE_CANDIDATE!>protectedFromCompanion<!>()
     }
 
     private class NestedDerived : Nested() {

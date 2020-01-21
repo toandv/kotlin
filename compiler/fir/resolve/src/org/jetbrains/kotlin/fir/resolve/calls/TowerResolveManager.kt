@@ -10,7 +10,6 @@ import org.jetbrains.kotlin.fir.resolve.transformQualifiedAccessUsingSmartcastIn
 import org.jetbrains.kotlin.fir.resolve.transformers.body.resolve.firUnsafe
 import org.jetbrains.kotlin.fir.symbols.AbstractFirBasedSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirCallableSymbol
-import org.jetbrains.kotlin.fir.symbols.impl.FirVariableSymbol
 import org.jetbrains.kotlin.fir.types.isExtensionFunctionType
 import org.jetbrains.kotlin.resolve.calls.tasks.ExplicitReceiverKind
 import org.jetbrains.kotlin.util.OperatorNameConventions
@@ -132,7 +131,7 @@ class TowerResolveManager internal constructor(private val towerResolver: FirNew
                     if (invokeReceiverCollector.isSuccess()) {
                         for (invokeReceiverCandidate in invokeReceiverCollector.bestCandidates()) {
 
-                            val symbol = invokeReceiverCandidate.symbol as FirVariableSymbol<*>
+                            val symbol = invokeReceiverCandidate.symbol as FirCallableSymbol<*>
                             val isExtensionFunctionType = symbol.fir.returnTypeRef.isExtensionFunctionType()
                             if (invokeBuiltinExtensionMode && !isExtensionFunctionType) {
                                 continue

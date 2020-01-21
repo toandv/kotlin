@@ -9,6 +9,7 @@ import org.jetbrains.kotlin.tools.projectWizard.ir.buildsystem.*
 import org.jetbrains.kotlin.tools.projectWizard.phases.GenerationPhase
 import org.jetbrains.kotlin.tools.projectWizard.plugins.StructurePlugin
 import org.jetbrains.kotlin.tools.projectWizard.plugins.buildSystem.BuildSystemPlugin
+import org.jetbrains.kotlin.tools.projectWizard.plugins.buildSystem.BuildSystemType
 import org.jetbrains.kotlin.tools.projectWizard.plugins.buildSystem.buildSystemType
 import org.jetbrains.kotlin.tools.projectWizard.plugins.pomIR
 import org.jetbrains.kotlin.tools.projectWizard.plugins.projectPath
@@ -18,7 +19,19 @@ import org.jetbrains.kotlin.tools.projectWizard.settings.version.Version
 import java.nio.file.Path
 
 class KotlinPlugin(context: Context) : Plugin(context) {
-    val version by versionSetting("Kotlin Version", GenerationPhase.FIRST_STEP)
+    val version by versionSetting("Kotlin Version", GenerationPhase.FIRST_STEP) {
+        validate { value ->
+            val currentVersion = service<KotlinVersionProviderService>()!!
+                .getCurrentKotlinVersion()
+                ?: return@validate ValidationResult.OK
+
+            if (buildSystemType == BuildSystemType.Jps && currentVersion != value) {
+                ValidationResult.ValidationError(
+                    "When using ${BuildSystemType.Jps.text} the Kotlin version should correspond to the Kotlin Plugin Version"
+                )
+            } else ValidationResult.OK
+        }
+    }
 
     val kotlinVersions by listProperty<Version>()
 

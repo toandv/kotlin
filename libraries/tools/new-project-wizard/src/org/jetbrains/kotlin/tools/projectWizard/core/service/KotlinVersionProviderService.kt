@@ -11,10 +11,12 @@ import org.jetbrains.kotlin.tools.projectWizard.settings.version.Version
 
 interface KotlinVersionProviderService : WizardService {
     fun getKotlinVersions(): List<Version>
+    fun getCurrentKotlinVersion(): Version?
 }
 
 class KotlinVersionProviderServiceImpl : KotlinVersionProviderService, IdeaIndependentWizardService {
-    override fun getKotlinVersions(): List<Version> = listOf(DEFAULT)
+    override fun getKotlinVersions(): List<Version> = listOf(getCurrentKotlinVersion())
+    override fun getCurrentKotlinVersion(): Version = DEFAULT
 
     companion object {
         val DEFAULT = Version.fromString("1.3.61")

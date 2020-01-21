@@ -7,11 +7,13 @@ package org.jetbrains.kotlin.tools.projectWizard.wizard.ui.firstStep
 
 import org.jetbrains.kotlin.tools.projectWizard.core.ValuesReadingContext
 import org.jetbrains.kotlin.tools.projectWizard.core.entity.DropDownSettingType
+import org.jetbrains.kotlin.tools.projectWizard.core.entity.SettingReference
 import org.jetbrains.kotlin.tools.projectWizard.core.entity.VersionSettingType
 import org.jetbrains.kotlin.tools.projectWizard.plugins.kotlin.KotlinPlugin
 import org.jetbrains.kotlin.tools.projectWizard.settings.version.Version
 import org.jetbrains.kotlin.tools.projectWizard.wizard.ui.setting.UIComponentDelegatingSettingComponent
 import org.jetbrains.kotlin.tools.projectWizard.core.entity.reference
+import org.jetbrains.kotlin.tools.projectWizard.plugins.buildSystem.BuildSystemPlugin
 import org.jetbrains.kotlin.tools.projectWizard.wizard.ui.components.DropDownComponent
 import org.jetbrains.kotlin.tools.projectWizard.wizard.ui.components.UIComponent
 
@@ -24,8 +26,9 @@ class KotlinVersionSettingComponent(
     override val uiComponent: DropDownComponent<Version> = DropDownComponent(
         valuesReadingContext,
         labelText = setting.title,
+        validator = setting.validator,
         onValueUpdate = { value = it }
-    )
+    ).asSubComponent()
 
     override fun onInit() {
         super.onInit()
@@ -33,6 +36,13 @@ class KotlinVersionSettingComponent(
         uiComponent.setValues(versions)
         if (value == null && versions.isNotEmpty()) {
             value = versions.first()
+        }
+    }
+
+    override fun onValueUpdated(reference: SettingReference<*, *>?) {
+        super.onValueUpdated(reference)
+        if (reference == BuildSystemPlugin::type.reference) {
+            value?.let(uiComponent::validate)
         }
     }
 }

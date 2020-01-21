@@ -17,10 +17,7 @@ import org.jetbrains.kotlin.tools.projectWizard.settings.version.Version
 
 class IdeaKotlinVersionProviderService : KotlinVersionProviderService, IdeaWizardService {
     override fun getKotlinVersions(): List<Version> {
-        if (KotlinPluginUtil.isSnapshotVersion()) {
-            return listOf(getLatestStableOrDefault())
-        }
-        val version = Version.fromString(KotlinPluginUtil.getPluginVersion())
+        val version = getCurrentKotlinVersion() ?: return listOf(getLatestStableOrDefault())
         if (version.kotlinVersionKind == KotlinVersionKind.STABLE) return listOf(version)
         return listOf(version, getLatestStableOrDefault())
     }
@@ -30,6 +27,11 @@ class IdeaKotlinVersionProviderService : KotlinVersionProviderService, IdeaWizar
             .loadVersions(MINIMUM_KOTLIN_VERSION_TO_LOAD)
             .map(Version.Companion::fromString)
     }.asNullable
+
+    override fun getCurrentKotlinVersion(): Version? {
+        if (KotlinPluginUtil.isSnapshotVersion()) return null
+        return Version.fromString(KotlinPluginUtil.getPluginVersion())
+    }
 
     private fun getLatestStableOrDefault() =
         getListOfVersions()?.firstOrNull()

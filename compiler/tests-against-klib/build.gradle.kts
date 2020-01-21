@@ -9,6 +9,7 @@ plugins {
 dependencies {
     compile(kotlinStdlib())
     testCompile(projectTests(":compiler:visualizer"))
+    testCompile(projectTests(":generators:test-generator"))
 }
 
 sourceSets {
@@ -25,3 +26,5 @@ projectTest(parallel = true) {
     workingDir = rootDir
     systemProperty("kotlin.test.script.classpath", testSourceSet.output.classesDirs.joinToString(File.pathSeparator))
 }
+
+val generateTests by generator("org.jetbrains.kotlin.generators.tests.GenerateCompilerTestsAgainstKlibKt")

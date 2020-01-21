@@ -50,7 +50,6 @@ dependencies {
     testCompile(projectTests(":compiler:fir:resolve"))
     testCompile(projectTests(":compiler:fir:lightTree"))
     testCompile(projectTests(":compiler:visualizer"))
-    testCompile(projectTests(":compiler:tests-against-klib"))
     testCompile(projectTests(":generators:test-generator"))
     testCompile(project(":compiler:ir.ir2cfg"))
     testCompile(project(":compiler:ir.tree")) // used for deepCopyWithSymbols call that is removed by proguard from the compiler TODO: make it more straightforward

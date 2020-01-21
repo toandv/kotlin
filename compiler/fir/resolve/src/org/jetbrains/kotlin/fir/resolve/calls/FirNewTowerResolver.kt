@@ -91,7 +91,13 @@ class FirNewTowerResolver(
 
         // TODO: check we have a value
         if (resolvedQualifier.classId != null) {
-            runResolverForExpressionReceiver(info, collector, resolvedQualifier, manager)
+            if (info.callKind == CallKind.CallableReference) {
+                if (info.stubReceiver != null) {
+                    runResolverForExpressionReceiver(info.replaceExplicitReceiver(info.stubReceiver), collector, resolvedQualifier, manager)
+                }
+            } else {
+                runResolverForExpressionReceiver(info, collector, resolvedQualifier, manager)
+            }
         }
 
         manager.processQueuedLevelsForInvoke(groupLimit = TowerGroup.Last)
@@ -402,10 +408,10 @@ class FirNewTowerResolver(
     ): CandidateCollector {
         // TODO: add flag receiver / non-receiver position
         this.implicitReceiverValues = implicitReceiverValues
-        manager.candidateFactory = CandidateFactory(components, info)
         if (info.callKind == CallKind.CallableReference && info.stubReceiver != null) {
             manager.stubReceiverCandidateFactory = CandidateFactory(components, info.replaceExplicitReceiver(info.stubReceiver))
         }
+        manager.candidateFactory = CandidateFactory(components, info)
         manager.resultCollector = collector
         if (info.callKind == CallKind.Function) {
             manager.invokeReceiverCollector = CandidateCollector(components, components.resolutionStageRunner)

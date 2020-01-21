@@ -179,9 +179,7 @@ class TowerResolveManager internal constructor(private val towerResolver: FirNew
                     }
                 }
                 CallKind.CallableReference -> {
-                    val stubReceiver = info.stubReceiver
-                    if (stubReceiver != null) {
-                        val stubReceiverValue = ExpressionReceiverValue(stubReceiver)
+                    if (info.explicitReceiver != null && info.explicitReceiver === info.stubReceiver) {
                         val stubProcessor = TowerScopeLevelProcessor(
                             if (this is MemberScopeTowerLevel && dispatchReceiver is AbstractExplicitReceiver<*>) {
                                 ExplicitReceiverKind.DISPATCH_RECEIVER
@@ -191,13 +189,8 @@ class TowerResolveManager internal constructor(private val towerResolver: FirNew
                             resultCollector,
                             stubReceiverCandidateFactory, group
                         )
-                        val towerLevelWithStubReceiver = replaceReceiverValue(stubReceiverValue)
-                        with(towerLevelWithStubReceiver) {
-                            processElementsByName(TowerScopeLevel.Token.Functions, info.name, stubProcessor)
-                            processElementsByName(TowerScopeLevel.Token.Properties, info.name, stubProcessor)
-                        }
-                        processElementsByName(TowerScopeLevel.Token.Functions, info.name, weakProcessor)
-                        processElementsByName(TowerScopeLevel.Token.Properties, info.name, weakProcessor)
+                        processElementsByName(TowerScopeLevel.Token.Functions, info.name, stubProcessor)
+                        processElementsByName(TowerScopeLevel.Token.Properties, info.name, stubProcessor)
                     } else {
                         processElementsByName(TowerScopeLevel.Token.Functions, info.name, processor)
                         processElementsByName(TowerScopeLevel.Token.Properties, info.name, processor)

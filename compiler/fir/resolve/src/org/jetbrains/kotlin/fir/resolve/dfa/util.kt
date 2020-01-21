@@ -23,7 +23,7 @@ import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
-@OptIn(ExperimentalContracts::class)
+@UseExperimental(ExperimentalContracts::class)
 fun DataFlowVariable.isSynthetic(): Boolean {
     contract {
         returns(true) implies (this@isSynthetic is SyntheticVariable)
@@ -32,7 +32,7 @@ fun DataFlowVariable.isSynthetic(): Boolean {
     return this is SyntheticVariable
 }
 
-@OptIn(ExperimentalContracts::class)
+@UseExperimental(ExperimentalContracts::class)
 fun DataFlowVariable.isReal(): Boolean {
     contract {
         returns(true) implies (this@isReal is RealVariable)
@@ -53,7 +53,7 @@ fun MutableTypeStatements.mergeTypeStatements(other: TypeStatements) {
     }
 }
 
-@OptIn(ExperimentalContracts::class)
+@UseExperimental(ExperimentalContracts::class)
 internal inline fun <K, V> MutableMap<K, V>.put(key: K, value: V, remappingFunction: (existing: V) -> V) {
     contract {
         callsInPlace(remappingFunction, InvocationKind.AT_MOST_ONCE)

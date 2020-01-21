@@ -16,7 +16,7 @@ import org.jetbrains.kotlin.fir.resolve.calls.FirNamedReferenceWithCandidate
 import org.jetbrains.kotlin.fir.symbols.AbstractFirBasedSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirFunctionSymbol
 
-@OptIn(DfaInternals::class)
+@UseExperimental(DfaInternals::class)
 class VariableStorage {
     private var counter = 1
     private val realVariables: MutableMap<Identifier, RealVariable> = HashMap()

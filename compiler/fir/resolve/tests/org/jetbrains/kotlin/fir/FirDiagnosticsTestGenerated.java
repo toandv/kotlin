@@ -514,6 +514,11 @@ public class FirDiagnosticsTestGenerated extends AbstractFirDiagnosticsTest {
             runTest("compiler/fir/resolve/testData/resolve/expresssions/lambdaWithReceiver.kt");
         }
 
+        @TestMetadata("localClassAccessesContainingClass.kt")
+        public void testLocalClassAccessesContainingClass() throws Exception {
+            runTest("compiler/fir/resolve/testData/resolve/expresssions/localClassAccessesContainingClass.kt");
+        }
+
         @TestMetadata("localConstructor.kt")
         public void testLocalConstructor() throws Exception {
             runTest("compiler/fir/resolve/testData/resolve/expresssions/localConstructor.kt");

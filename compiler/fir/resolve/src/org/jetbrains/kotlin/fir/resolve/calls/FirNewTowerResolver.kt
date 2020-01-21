@@ -48,7 +48,9 @@ class FirNewTowerResolver(
                 val usableAsValue = when (it) {
                     is ImplicitExtensionReceiverValue -> true
                     is ImplicitDispatchReceiverValue -> if (firstDispatchValue) {
-                        if ((it.boundSymbol.fir as? FirRegularClass)?.isInner == false) {
+                        if ((it.boundSymbol.fir as? FirRegularClass)?.isInner == false &&
+                            !it.boundSymbol.classId.isLocal
+                        ) {
                             firstDispatchValue = false
                         }
                         true

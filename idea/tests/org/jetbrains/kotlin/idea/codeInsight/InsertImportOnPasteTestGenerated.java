@@ -255,6 +255,11 @@ public class InsertImportOnPasteTestGenerated extends AbstractInsertImportOnPast
             runTest("idea/testData/copyPaste/imports/MultiReferencePartiallyCopied.kt");
         }
 
+        @TestMetadata("MultiCaretSelectionEntireFile.kt")
+        public void testMultiCaretSelectionEntireFile() throws Exception {
+            runTest("idea/testData/copyPaste/imports/MultiCaretSelectionEntireFile.kt");
+        }
+
         @TestMetadata("NoImportForBuiltIns.kt")
         public void testNoImportForBuiltIns() throws Exception {
             runTest("idea/testData/copyPaste/imports/NoImportForBuiltIns.kt");
@@ -606,6 +611,11 @@ public class InsertImportOnPasteTestGenerated extends AbstractInsertImportOnPast
         @TestMetadata("MultiReferencePartiallyCopied.kt")
         public void testMultiReferencePartiallyCopied() throws Exception {
             runTest("idea/testData/copyPaste/imports/MultiReferencePartiallyCopied.kt");
+        }
+
+        @TestMetadata("MultiCaretSelectionEntireFile.kt")
+        public void testMultiCaretSelectionEntireFile() throws Exception {
+            runTest("idea/testData/copyPaste/imports/MultiCaretSelectionEntireFile.kt");
         }
 
         @TestMetadata("NoImportForBuiltIns.kt")

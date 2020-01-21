@@ -142,7 +142,7 @@ enum class ProjectKind(override val text: String) : DisplayableSettingItem {
 fun List<Module>.withAllSubModules(includeSourcesets: Boolean = false): List<Module> = buildList {
     fun handleModule(module: Module) {
         +module
-        if (module.kind == ModuleKind.singleplatform
+        if (module.kind == ModuleKind.singleplatformJvm
             || includeSourcesets && module.kind == ModuleKind.multiplatform
         ) {
             module.subModules.forEach(::handleModule)

@@ -62,10 +62,7 @@ abstract class SessionBasedTowerLevel(val session: FirSession) : TowerScopeLevel
     }
 
     protected fun FirCallableSymbol<*>.hasConsistentExtensionReceiver(extensionReceiver: Receiver?): Boolean {
-        return when {
-            extensionReceiver != null -> hasExtensionReceiver()
-            else -> fir.receiverTypeRef == null
-        }
+        return (extensionReceiver != null) == hasExtensionReceiver()
     }
 
     open fun replaceReceiverValue(receiverValue: ReceiverValue) = this
@@ -235,6 +232,5 @@ fun FirCallableDeclaration<*>.dispatchReceiverValue(session: FirSession): ClassD
 }
 
 private fun FirCallableSymbol<*>.hasExtensionReceiver(): Boolean {
-    if (fir.receiverTypeRef != null) return true
-    return fir.returnTypeRef.isExtensionFunctionType()
+    return fir.receiverTypeRef != null
 }

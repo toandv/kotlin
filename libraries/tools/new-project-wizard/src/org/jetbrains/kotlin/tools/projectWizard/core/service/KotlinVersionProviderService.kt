@@ -26,13 +26,15 @@ class KotlinVersionProviderServiceImpl : KotlinVersionProviderService, IdeaIndep
 
 val Version.kotlinVersionKind
     get() = when {
-        "eap" in toString() -> KotlinVersionKind.EAP
-        "dev" in toString() -> KotlinVersionKind.DEV
+        "eap" in toString().toLowerCase() -> KotlinVersionKind.EAP
+        "dev" in toString().toLowerCase() -> KotlinVersionKind.DEV
+        "m" in toString().toLowerCase() -> KotlinVersionKind.M
         else -> KotlinVersionKind.STABLE
     }
 
 enum class KotlinVersionKind(val repository: Repository?) {
     STABLE(repository = null),
     EAP(repository = Repositories.KOTLIN_EAP_BINTRAY),
-    DEV(repository = Repositories.KOTLIN_DEV_BINTRAY)
+    DEV(repository = Repositories.KOTLIN_DEV_BINTRAY),
+    M(repository = Repositories.KOTLIN_EAP_BINTRAY)
 }

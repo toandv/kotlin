@@ -66,5 +66,4 @@ private object KotlinLatestStableVersionService {
             ?: return false
         return cachedVersionSavedOn == pluginVersion
     }
-
 }

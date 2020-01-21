@@ -23,7 +23,10 @@ public class TypeReference(
     override fun hashCode(): Int =
         (classifier.hashCode() * 31 + arguments.hashCode()) * 31 + isMarkedNullable.hashCode()
 
-    override fun toString(): String {
+    override fun toString(): String =
+        asString() + Reflection.REFLECTION_NOT_AVAILABLE
+
+    private fun asString(): String {
         val javaClass = (classifier as? KClass<*>)?.java
         val klass = when {
             javaClass == null -> classifier.toString()
@@ -32,10 +35,10 @@ public class TypeReference(
         }
         val args =
             if (arguments.isEmpty()) ""
-            else arguments.joinToString(", ", "<", ">") { it.toString().removeSuffix(Reflection.REFLECTION_NOT_AVAILABLE) }
+            else arguments.joinToString(", ", "<", ">") { it.asString() }
         val nullable = if (isMarkedNullable) "?" else ""
 
-        return klass + args + nullable + Reflection.REFLECTION_NOT_AVAILABLE
+        return klass + args + nullable
     }
 
     private val Class<*>.arrayClassName
@@ -50,4 +53,17 @@ public class TypeReference(
             DoubleArray::class.java -> "kotlin.DoubleArray"
             else -> "kotlin.Array"
         }
+
+    // This is based on KTypeProjection.toString, but uses [asString] to avoid adding the
+    // "reflection not supported" suffix to each type argument.
+    private fun KTypeProjection.asString(): String {
+        if (variance == null) return "*"
+
+        val typeString = (type as? TypeReference)?.asString() ?: type.toString()
+        return when (variance) {
+            KVariance.INVARIANT -> typeString
+            KVariance.IN -> "in $typeString"
+            KVariance.OUT -> "out $typeString"
+        }
+    }
 }

@@ -5,7 +5,7 @@ kotlin:
     - type:
         name: android
         androidSdkPath: /home/user/Android/Sdk
-      kind: singleplatform
+      kind: singleplatformJvm
       name: android
       sourcesets:
         - type: main

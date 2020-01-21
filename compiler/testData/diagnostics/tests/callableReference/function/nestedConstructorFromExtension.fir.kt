@@ -7,14 +7,14 @@ class A {
 }
     
 fun A.main() {
-    ::Nested
+    <!UNRESOLVED_REFERENCE!>::Nested<!>
     val y = A::Nested
     
     checkSubtype<KFunction0<A.Nested>>(y)
 }
 
 fun Int.main() {
-    ::Nested
+    <!UNRESOLVED_REFERENCE!>::Nested<!>
     val y = A::Nested
 
     checkSubtype<KFunction0<A.Nested>>(y)

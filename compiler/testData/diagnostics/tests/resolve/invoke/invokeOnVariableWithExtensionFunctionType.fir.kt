@@ -13,9 +13,9 @@ fun test(a: A, b: B) {
     a.foo(b)
 
     with(a) {
-        b.<!UNRESOLVED_REFERENCE!>foo<!>()
+        b.foo()
 
-        b.(<!UNRESOLVED_REFERENCE!>foo<!>)()
+        b.(foo)()
 
         <!UNRESOLVED_REFERENCE!>(b.<!INAPPLICABLE_CANDIDATE!>foo<!>)()<!>
 
@@ -24,10 +24,10 @@ fun test(a: A, b: B) {
     }
 
     with(b) {
-        a.foo()
-        a.(foo)()
+        a.<!INAPPLICABLE_CANDIDATE!>foo<!>()
+        a.(<!INAPPLICABLE_CANDIDATE!>foo<!>)()
 
-        (a.foo)()
+        <!INAPPLICABLE_CANDIDATE!>(a.foo)()<!>
 
         (a.foo)(this)
         a.foo(this)
@@ -66,10 +66,10 @@ fun test(a: A, b: B) {
     }
 
     with(b) {
-        a.foo()
-        a.(foo)()
+        a.<!INAPPLICABLE_CANDIDATE!>foo<!>()
+        a.(<!INAPPLICABLE_CANDIDATE!>foo<!>)()
 
-        (a.foo)()
+        <!INAPPLICABLE_CANDIDATE!>(a.foo)()<!>
 
         (a.foo)(this)
         a.foo(this)

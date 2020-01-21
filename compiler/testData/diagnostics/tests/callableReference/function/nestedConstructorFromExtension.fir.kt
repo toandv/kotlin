@@ -10,12 +10,12 @@ fun A.main() {
     ::Nested
     val y = A::Nested
     
-    <!INAPPLICABLE_CANDIDATE!>checkSubtype<!><KFunction0<A.Nested>>(y)
+    checkSubtype<KFunction0<A.Nested>>(y)
 }
 
 fun Int.main() {
     ::Nested
     val y = A::Nested
 
-    <!INAPPLICABLE_CANDIDATE!>checkSubtype<!><KFunction0<A.Nested>>(y)
+    checkSubtype<KFunction0<A.Nested>>(y)
 }

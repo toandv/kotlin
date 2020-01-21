@@ -1,7 +1,7 @@
 fun test1(f: String.() -> Unit) {
-    (<!INAPPLICABLE_CANDIDATE!>f<!>)()
+    (<!UNRESOLVED_REFERENCE!>f<!>)()
 
-    <!INAPPLICABLE_CANDIDATE!>f<!>()
+    <!UNRESOLVED_REFERENCE!>f<!>()
 }
 
 fun test2(f: (Int) -> Int) {
